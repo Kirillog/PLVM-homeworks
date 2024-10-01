@@ -1,14 +1,18 @@
+#include <algorithm>
 #include <iostream>
 #include <optional>
 #include <cstring>
 #include <chrono>
+#include <algorithm>
 #include <map>
 
-static constexpr uint32_t MEM_SIZE = 1 << 24;
-static constexpr uint32_t MAX_ASSOC = 32;
-static constexpr uint32_t MAX_STRIDE = MEM_SIZE / MAX_ASSOC;
+static constexpr uint32_t MEM_SIZE 		= 1 << 24;
+static constexpr uint32_t MAX_ASSOC 	= 32;
+static constexpr uint32_t MAX_STRIDE 	= MEM_SIZE / MAX_ASSOC;
+static constexpr uint32_t PAGE_SIZE 	= 4 * 1024;
+static constexpr uint32_t TRIES_COUNT	= 100;
 
-alignas(4 * 1024) char mem[MEM_SIZE];
+alignas(PAGE_SIZE) char mem[MEM_SIZE];
 
 typedef std::chrono::duration<double, std::nano> duration;
 typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point;
@@ -41,13 +45,17 @@ duration time(uint32_t stride, uint32_t spots) {
 	return end - start;
 }
 
+bool is_movement(duration stamp1, duration stamp2) {
+	return stamp2.count() / stamp1.count() > 1.2;
+}
+
 std::optional<uint32_t> try_estimate_assoc(uint32_t stride) {
 	init_mem(stride, 1);
 	auto prev_time = time(stride, 1);
 	for (uint32_t assoc = 2; assoc < MAX_ASSOC; ++assoc) {
 		init_mem(stride, assoc);
 		auto cur_time = time(stride, assoc);
-		if (cur_time.count() / prev_time.count() > 1.2) {
+		if (is_movement(prev_time, cur_time)) {
 			return assoc - 1;
 		}
 		prev_time = cur_time;
@@ -56,37 +64,23 @@ std::optional<uint32_t> try_estimate_assoc(uint32_t stride) {
 }
 
 std::pair<uint32_t, uint32_t> try_estimate_size_assoc() {
-	uint32_t stride = MAX_STRIDE; 
 	std::optional<uint32_t> prev_assoc = std::nullopt;
-	while (stride >= 16) {
+	for (uint32_t stride = 16; stride <= MAX_STRIDE; stride <<= 1) {
 		auto assoc = try_estimate_assoc(stride);
-		if (prev_assoc.has_value() && assoc.has_value() && (*prev_assoc) * 2 == *assoc) {
-			return {stride * *assoc, *prev_assoc};
+		if (prev_assoc.has_value() && assoc.has_value() && (*assoc) * 2 == *prev_assoc) {
+			return {stride * *assoc, *assoc};
 		}
 		prev_assoc = assoc;
-		stride >>= 1;
 	}
 	return {0, 0};
 }
 
-struct CacheSpecs {
-	uint32_t capacity;
-	uint32_t associativity;
-	uint32_t block_size;
-};
-
 std::pair<uint32_t, uint32_t> detect_capacity_associativity() {
 	std::map<std::pair<uint32_t, uint32_t>, uint32_t> count;
-	for (int _ = 0; _ < 100; ++_) {
+	for (int _ = 0; _ < TRIES_COUNT; ++_) {
 		++count[try_estimate_size_assoc()];
 	}
-	std::pair<uint32_t, uint32_t> key = {0, 0};
-	for (const auto& [k, v] : count) {
-		if (v > count[key]) {
-			key = k;
-		}
-	}
-	return key;
+	return std::max_element(count.begin(), count.end())->first;
 }
 
 uint32_t try_estimate_block_size(uint32_t cap, uint32_t assoc) {
@@ -102,10 +96,9 @@ uint32_t try_estimate_block_size(uint32_t cap, uint32_t assoc) {
 		for (int i = 0; i < bl; ++i) {
 			set_next_ptr(next + stride * (i + 1), &next[stride * i]);
 		}
-		init_mem(stride, assoc / 2 + 1);
 		set_next_ptr(mem, next + stride * bl);
 		auto cur_time = time(stride, 1);
-		if (prev_time.count() / cur_time.count() > 1.2) {
+		if (is_movement(cur_time, prev_time)) {
 			return cur_block_size;
 		}
 		prev_time = cur_time;
@@ -115,16 +108,10 @@ uint32_t try_estimate_block_size(uint32_t cap, uint32_t assoc) {
 
 uint32_t detect_cache_size(uint32_t cap, uint32_t assoc) {
 	std::map<uint32_t, uint32_t> count;
-	for (int _ = 0; _ < 100; ++_) {
+	for (int _ = 0; _ < TRIES_COUNT; ++_) {
 		++count[try_estimate_block_size(cap, assoc)];
 	}
-	uint32_t key = 0;
-	for (const auto& [k, v] : count) {
-		if (v > count[key]) {
-			key = k;
-		}
-	}
-	return key;
+	return std::max_element(count.begin(), count.end())->first;
 }
 
 int main() {
