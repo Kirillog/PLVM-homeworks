@@ -75,12 +75,26 @@ std::pair<uint32_t, uint32_t> try_estimate_size_assoc() {
 	return {0, 0};
 }
 
+template <typename K, typename V>
+K max_by_value(std::map<K, V>& count) {
+	K key = count.begin()->first;
+	for (auto &[k, v] : count) {
+		if (count[k] > count[key]) {
+			key = k;
+		}
+	}
+	return key;
+}
+
 std::pair<uint32_t, uint32_t> detect_capacity_associativity() {
 	std::map<std::pair<uint32_t, uint32_t>, uint32_t> count;
 	for (int _ = 0; _ < TRIES_COUNT; ++_) {
 		++count[try_estimate_size_assoc()];
 	}
-	return std::max_element(count.begin(), count.end())->first;
+	for (auto &[k, v] : count) {
+		std::cerr << "{" << k.first << "," << k.second << "} -> " << v << "\n";
+	}
+	return max_by_value(count);
 }
 
 uint32_t try_estimate_block_size(uint32_t cap, uint32_t assoc) {
@@ -106,18 +120,23 @@ uint32_t try_estimate_block_size(uint32_t cap, uint32_t assoc) {
 	return 0;
 } 
 
-uint32_t detect_cache_size(uint32_t cap, uint32_t assoc) {
+uint32_t detect_block_size(uint32_t cap, uint32_t assoc) {
 	std::map<uint32_t, uint32_t> count;
 	for (int _ = 0; _ < TRIES_COUNT; ++_) {
 		++count[try_estimate_block_size(cap, assoc)];
 	}
-	return std::max_element(count.begin(), count.end())->first;
+	for (auto &[k, v] : count) {
+		std::cerr << k << " -> " << v << "\n";
+	}
+	return max_by_value(count);
 }
 
 int main() {
 	auto [cap, assoc] = detect_capacity_associativity();
 	std::cout << "Capacity: " << cap << "\n";
 	std::cout << "Associativity: " << assoc << "\n";
-	std::cout << "Block size: " << detect_cache_size(cap, assoc) << "\n";
+	auto block_size = detect_block_size(cap, assoc);
+	std::cout << "Block size: " << block_size << "\n";
+	
 	return 0;
 }
