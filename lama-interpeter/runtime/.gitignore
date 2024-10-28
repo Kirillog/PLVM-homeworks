@@ -1,0 +1,3 @@
+*.a
+*.o
+expressions/orig/generated*.log

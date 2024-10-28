@@ -1,0 +1,3 @@
+*.o
+byterun
+disasm
