@@ -9,8 +9,8 @@ check: $(TESTS)
 
 $(TESTS): %: %.lama
 	@echo $@
-	@cat $@.input | `which time` -f "$@\t%U" LAMA=../runtime $(LAMAC) -i $<
-	LAMA=../runtime $(LAMAC) -b $@.lama && cat $@.input | `which time` -f "$@\t%U" $(BYTERUN) $@.bc
+	@LAMA=../runtime $(LAMAC) -b $@.lama && `which time` -f "$@ iter\t%U" $(BYTERUN) $@.bc
+	@LAMA=../runtime `which time` -f "$@ rec \t%U" $(LAMAC) -i $<
 
 clean:
-	$(RM) test*.log *.s *~ $(TESTS) *.i
+	$(RM) test*.log *.s *~ $(TESTS) *.i *.bc

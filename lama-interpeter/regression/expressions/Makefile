@@ -12,6 +12,6 @@ $(TESTS): %: %.lama
 	@LAMA=../../runtime $(LAMAC) -b $< && cat $@.input | $(BYTERUN) $@.bc > $@.log && diff $@.log orig/$@.log
 
 clean:
-	rm -f *.log *.s *~
+	rm -f *.log *.s *~ *.bc
 	find . -maxdepth 1 -type f -not -name '*.*' -not -name 'Makefile' -delete
 

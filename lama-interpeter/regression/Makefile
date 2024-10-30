@@ -7,11 +7,11 @@ BYTERUN=../byterun/byterun
 
 check: $(TESTS)
 
-$(TESTS): %: %.lama ../byterun/byterun
+$(TESTS): %: %.lama
 	@echo "regression/$@"
 	@LAMA=../runtime $(LAMAC) -b $< && cat $@.input | $(BYTERUN) $@.bc > $@.log && diff $@.log orig/$@.log
 
 clean:
-	$(RM) test*.log *.s *.sm *~ $(TESTS) *.i
+	$(RM) test*.log *.s *.sm *~ $(TESTS) *.i *.bc
 	$(MAKE) clean -C expressions
 	$(MAKE) clean -C deep-expressions
