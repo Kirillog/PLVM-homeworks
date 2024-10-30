@@ -2,56 +2,97 @@
 
 #include "../runtime/runtime.h"
 #include "../runtime/gc.h"
-#include "virt_stack.h"
 #include "bytefile.h"
 #include "stack_frame.h"
-#include "op_stack.h"
+#include "byterun.h"
 #include <stdio.h>
 
+#define RUNTIME_VSTACK_SIZE 100000
 
-extern size_t __gc_stack_top, __gc_stack_bottom;
+// (__gc_stack_top, __gc_stack_bottom)
+extern size_t *__gc_stack_top, *__gc_stack_bottom;
 
-#define PRE_GC()                                                                                 \
+size_t mem[RUNTIME_VSTACK_SIZE];
 
-#define POST_GC()                                                                                  \
+void vstack_init () {
+  __gc_stack_bottom = mem + RUNTIME_VSTACK_SIZE;
+  __gc_stack_top = __gc_stack_bottom - 1;
+}
 
-#ifdef DEBUG
-#define debug(...) fprintf(__VA_ARGS__)
-#else
-#define debug(...)
-#endif
+void vstack_push (size_t value) {
+  if (__gc_stack_top == mem) { failure("stack overflow"); }
+  *(__gc_stack_top--) = value;
+}
 
+void vstack_alloc_count (size_t count) {
+  if (__gc_stack_top - count <= mem) { failure("stack overflow"); }
+  __gc_stack_top -= count;
+}
 
-int binop(int opcode, int a, int b) {
-  switch (opcode) {
-  case 0:
-    return a + b;
-  case 1:
-    return a - b;
-  case 2:
-    return a * b;
-  case 3:
-    return a / b;
-  case 4:
-    return a % b;
-  case 5:
-    return a < b;
-  case 6:
-    return a <= b;
-  case 7:
-    return a > b;
-  case 8:
-    return a >= b;
-  case 9:
-    return a == b;
-  case 10:
-    return a != b;
-  case 11:
-    return a && b;
-  case 12:
-    return a || b;
-  default:
-    failure("ERROR: invalid binary opcode %d", opcode);
+void vstack_reverse_count (size_t count) {
+  if (__gc_stack_bottom - __gc_stack_top <= count)  { failure("stack underflow in reverse"); }
+  for (size_t *bot = __gc_stack_top + count, *top = __gc_stack_top + 1; bot > top; --bot, ++top) {
+    size_t tmp = *bot;
+    *bot = *top;
+    *top = tmp;
+  }
+}
+
+size_t vstack_pop () {
+  if (__gc_stack_bottom - __gc_stack_top == 1) { failure("stack underflow in pop"); }
+  return *(++__gc_stack_top);
+}
+
+void vstack_pop_count (size_t count) {
+  if (__gc_stack_bottom - __gc_stack_top <= count)  { failure("stack underflow in pop count"); }
+  __gc_stack_top += count;
+}
+
+void *vstack_top () { return __gc_stack_top + 1; }
+
+void *vstack_after_top () { return __gc_stack_top; }
+
+void *vstack_kth_ptr_from_start (size_t k) {
+  if (__gc_stack_bottom - __gc_stack_top <= k) { failure("stack underflow in kth from start"); }
+  return __gc_stack_bottom - (k + 1);
+}
+
+size_t vstack_kth_from_top (size_t k) {
+  if (__gc_stack_bottom - __gc_stack_top <= k) { failure("stack underflow in kth from top"); }
+  return *(__gc_stack_top + k + 1);
+}
+
+void vstack_debug(FILE* f) {
+  fprintf(f, "\n+------+");
+  for (size_t *cur = __gc_stack_top + 1; cur < __gc_stack_bottom; cur++) {
+    fprintf(f, "\n|%lu", *cur);
+  }
+  fprintf(f, "\n+______+");
+}
+
+void op_stack_init(int global_area_size) {
+  vstack_init();
+  vstack_alloc_count(global_area_size);
+}
+
+void *op_stack_load_addr(const stack_frame * frame, location loc, size_t ind) {
+  switch (loc) {
+    case GLOBAL: {
+      return (void *)vstack_kth_ptr_from_start(ind);
+    }
+    case LOCAL: {
+      return frame->base_ptr - ind;
+    }
+    case ARGUMENT: {
+      return frame->base_ptr + (1 + ind);
+    }
+    case CAPTURED: {
+      int *closure = *((int **)frame->base_ptr + frame->arg_count + 1);
+      return closure + 1 + ind;
+    }
+    default: {
+      failure("unexpected location");
+    }
   }
 }
 
@@ -76,64 +117,56 @@ extern int Lread ();
 extern int Lwrite (int n);
 extern int Llength (void *p);
 extern void *Lstring (void *p);
-static void *Bsexp (virt_stack *op_stack, int n, int tag) {
+
+static void *Bsexp (int n, int tag) {
   int     i;
   int     ai;
   data   *r;
-
-  PRE_GC();
 
   int fields_cnt   = n;
   r                = (data *)alloc_sexp(fields_cnt);
   ((sexp *)r)->tag = 0;
 
   for (i = n; i > 0; --i) {
-    ai                      = vstack_pop(op_stack);
+    ai                      = vstack_pop();
     ((int *)r->contents)[i] = ai;
   }
 
   ((sexp *)r)->tag = tag;
 
-  POST_GC();
   return (int *)r->contents;
 }
-static void *Barray (virt_stack *op_stack, int n) {
+static void *Barray (int n) {
   int     i, ai;
   data   *r;
-
-  PRE_GC();
 
   r = (data *)alloc_array(n);
 
   for (i = n - 1; i >= 0; --i) {
-    ai                      = vstack_pop(op_stack);
+    ai                      = vstack_pop();
     ((int *)r->contents)[i] = ai;
   }
 
-  POST_GC();
   return r->contents;
 }
-static void *Bclosure (virt_stack *op_stack, int n, void *entry) {
+static void *Bclosure (int n, void *entry) {
   int           i, ai;
   data         *r;
-
-  PRE_GC();
 
   r = (data *)alloc_closure(n + 1);
   push_extra_root((void **)&r);
   ((void **)r->contents)[0] = entry;
 
   for (i = n; i >= 1; --i) {
-    ai                      = vstack_pop(op_stack);
+    ai                      = vstack_pop();
     ((int *)r->contents)[i] = ai;
   }
 
-  POST_GC();
   pop_extra_root((void **)&r);
 
   return r->contents;
 }
-
+#ifdef DEBUG
 void debug_ld(FILE *f, char h, char l, int ind) {
   char *lds [] = {"LD", "LDA", "ST"};
   debug (f, "%s\t", lds[h-2]);
@@ -144,171 +177,169 @@ void debug_ld(FILE *f, char h, char l, int ind) {
   case 3: debug (f, "C(%d)", ind); break;
   }
 }
+#endif
 
-void interpret(bytefile *bf, char *fname) {
+typedef enum BinopCode {
+  ADD = 0,
+  SUB = 1, 
+  MUL = 2, 
+  DIV = 3,
+  MOD = 4,
+  LT  = 5,
+  LEQ = 6,
+  GT  = 7,
+  GEQ = 8,
+  EQ  = 9,
+  NEQ = 10,
+  AND = 11,
+  OR = 12 
+} BinopCode;
+
+int binop(BinopCode opcode, int a, int b) {
+  switch (opcode) {
+  case ADD:
+    return a + b;
+  case SUB:
+    return a - b;
+  case MUL:
+    return a * b;
+  case DIV:
+    return a / b;
+  case MOD:
+    return a % b;
+  case LT:
+    return a < b;
+  case LEQ:
+    return a <= b;
+  case GT:
+    return a > b;
+  case GEQ:
+    return a >= b;
+  case EQ:
+    return a == b;
+  case NEQ:
+    return a != b;
+  case AND:
+    return a && b;
+  case OR:
+    return a || b;
+  default:
+    failure("ERROR: invalid binary opcode %d", opcode);
+  }
+}
+
+enum HCode {
+  CBINOP  = 0,
+  CLD     = 2,
+  CLDA    = 3,
+  CST     = 4,
+  CPATT   = 6,
+  CSTOP   = 15,
+};
+
+enum Patt {
+  STRING_PATT     = 0,
+  STRING_TAG_PATT = 1,
+  ARRAY_TAG_PATT  = 2,
+  SEXP_TAG_PATT   = 3,
+  BOXED_PATT      = 4,
+  UNBOXED_PATT    = 5,
+  CLOSURE_PATT    = 6,
+};
+
+enum Code {
+  CCONST  = 16,
+  CSTRING = 17,
+  CSEXP   = 18,
+  CSTI    = 19,
+  CSTA    = 20,
+  CJMP    = 21,
+  CEND    = 22,
+  CRET    = 23,
+  CDROP   = 24,
+  CDUP    = 25,
+  CSWAP   = 26,
+  CELEM   = 27,
+
+  CCJMPZ  = 80,
+  CCJMPNZ = 81,
+  CBEGIN  = 82,
+  CCBEGIN = 83,
+  CCLOSURE= 84,
+  CCALLC  = 85,
+  CCALL   = 86,
+  CTAG    = 87,
+  CARRAY  = 88,
+  CFAIL   = 89,
+  CLINE   = 90,
+
+  CLREAD  = 112,
+  CLWRITE = 113,
+  CLLENGTH= 114,
+  CLSTRING= 115,
+  CBARRAY = 116
+};
+
+void interpret(const bytefile *bf, const char *fname) {
   #ifdef DEBUG
   FILE *f = fopen("debug.log", "w");
   #endif
   __init();
-  virt_stack *st      = op_stack_init(bf->global_area_size);
-  stack_frame *frame  = init_call_stack(st);
+  op_stack_init(bf->global_area_size);
+  stack_frame *frame  = init_call_stack();
   char *ip     = bf->code_ptr;
 # define INT            (ip += sizeof (int), *(int*)(ip - sizeof (int)))
 # define BYTE           *ip++
-# define STRING         get_string (bf, INT)
+# define STRING         get_string ((bytefile *)bf, INT)
 # define FAIL           failure ("ERROR: invalid opcode %d-%d\n", h, l)
-  char *ops [] = {"+", "-", "*", "/", "%", "<", "<=", ">", ">=", "==", "!=", "&&", "!!"};
-  char *pats[] = {"=str", "#string", "#array", "#sexp", "#ref", "#val", "#fun"};
+#ifdef DEBUG
+  static const char * const ops [] = {"+", "-", "*", "/", "%", "<", "<=", ">", ">=", "==", "!=", "&&", "!!"};
+  static const char * const pats[] = {"=str", "#string", "#array", "#sexp", "#ref", "#val", "#fun"};
+#endif
   do {
-    char x = BYTE,
-         h = (x & 0xF0) >> 4,
-         l = x & 0x0F;
+    unsigned char x = BYTE,
+                  h = (x & 0xF0) >> 4,
+                  l = x & 0x0F;
 
-    // debug (f, "frame base ptr: %p\n", frame->base_ptr);
     debug (f, "0x%.8u:\t", ip - bf->code_ptr-1);
     
     switch (h) {
-    case 15:
+    case CSTOP:
       goto stop;
       
-    case 0: {
+    case CBINOP: {
       debug (f, "BINOP\t%s", ops[l-1]);
-      int right = UNBOX(vstack_pop(st));
-      int left = UNBOX(vstack_pop(st));
-      vstack_push(st, BOX(binop(l - 1, left, right)));
-      break;
-    }
-      
-    case 1: {
-      switch (l) {
-      case  0: {
-        int val = INT;
-        vstack_push(st, BOX(val));
-        debug (f, "CONST\t%d", val);
-        break;
-      }
-        
-      case  1: {
-        char *str = STRING; 
-        int value = (size_t)Bstring(str);
-        vstack_push(st, value);
-        debug (f, "STRING\t%s %x", str, value);
-        break;
-      }
-          
-      case  2: {
-        char *name    = STRING;
-        int count     = INT;
-        size_t value = (size_t)Bsexp(st, count, UNBOX(LtagHash(name)));
-        vstack_push(st, value);
-        debug (f, "SEXP\t%s %d", name, count);
-        break;
-      }
-        
-      case  3: {
-        size_t value  = vstack_pop(st);
-        size_t *ptr   = (size_t *)vstack_pop(st);
-        *ptr = value;
-        vstack_push(st, value);
-        debug (f, "STI");
-        break;
-      }
-        
-      case  4: {
-        size_t *v = (size_t *)vstack_pop(st);
-        size_t i  = vstack_pop(st);
-        size_t *x = (size_t *)vstack_pop(st);
-        size_t *ptr = Bsta(v, i, x);
-        vstack_push(st, (size_t)ptr);
-        debug (f, "STA");
-        break;
-      }
-        
-      case  5: {
-        int offset = INT;
-        ip = bf->code_ptr + offset;
-        debug (f, "JMP\t0x%.8x", offset);
-        break;
-      }
-        
-      case  6: 
-      case  7: {
-        int rv = vstack_pop(st);
-        vstack_pop_count(st, frame->local_count);
-        vstack_pop_count(st, frame->arg_count);
-        if (frame->cls) { vstack_pop(st); }
-        vstack_push(st, rv);
-        ip = frame->ret_addr;
-        stack_frame* prev = frame->prev;
-        free(frame);
-        frame = prev;
-        debug (f, (l == 6) ? "END" : "RET");
-        if (frame == NULL) {
-          goto stop;  
-        }
-        break;
-      }
-        
-      case  8: {
-        vstack_pop(st);
-        debug (f, "DROP");
-        break;
-      }
-        
-      case  9: {
-        vstack_push(st, *(size_t *)vstack_top(st));
-        debug (f, "DUP");
-        break;
-      }
-        
-      case 10: {
-        size_t val1 = vstack_pop(st);
-        size_t val2 = vstack_pop(st);
-        vstack_push(st, val1);
-        vstack_push(st, val2);
-        debug (f, "SWAP");
-        break;
-      }
-
-      case 11: {
-        int i     = vstack_pop(st);
-        int *arr  = (int *)vstack_pop(st);
-        vstack_push(st, (size_t)Belem(arr, i));
-        debug (f, "ELEM");
-        break;
-      }
-        
-      default:
-        FAIL;
-      }
+      int right = UNBOX(vstack_pop());
+      int left = UNBOX(vstack_pop());
+      vstack_push(BOX(binop(l - 1, left, right)));
       break;
     }
 
-    case 2: { // LD
+    case CLD: {
       int ind = INT;
-      int *addr = op_stack_load_addr(st, frame, l, ind);
-      vstack_push(st, *addr);
+      int *addr = op_stack_load_addr(frame, l, ind);
+      vstack_push(*addr);
       #ifdef DEBUG
       debug_ld(f, h, l, ind);
       #endif
       break;
     }
 
-    case 3: { // LDA
+    case CLDA: {
       int ind = INT; 
-      int *addr = op_stack_load_addr(st, frame, l, ind);
-      vstack_push(st, (size_t)addr);
-      vstack_push(st, (size_t)addr);
+      int *addr = op_stack_load_addr(frame, l, ind);
+      vstack_push((size_t)addr);
+      vstack_push((size_t)addr);
       #ifdef DEBUG
       debug_ld(f, h, l, ind);
       #endif
       break;
     }
 
-    case 4: { // ST
+    case CST: {
       int ind = INT;
-      int value = *(size_t *)vstack_top(st);
-      int* addr = op_stack_load_addr(st, frame, l, ind);
+      int value = *(size_t *)vstack_top();
+      int* addr = op_stack_load_addr(frame, l, ind);
       *addr = value;
       #ifdef DEBUG
       debug_ld(f, h, l, ind);
@@ -316,135 +347,36 @@ void interpret(bytefile *bf, char *fname) {
       break;
     }
 
-    case 5:
+    case CPATT: {
+      void *z = (void *)vstack_pop(); 
       switch (l) {
-      case  0:
-      case  1: {
-        int offset = INT;
-        size_t value = UNBOX(vstack_pop(st));
-        if (l == 0 && value == 0 || l != 0 && value != 0) {
-          ip = bf->code_ptr + offset;
-        }
-        debug (f, (l == 0) ? "CJMPz\t0x%.8x" : "CJMPnz\t0x%.8x", offset);
-        break;
-      }
-
-      case  2:
-      case  3: {
-        int arg_count = INT, 
-            local_count = INT;
-        vstack_alloc_count(st, local_count);
-        frame->local_count = local_count;
-        debug (f, (l == 2) ? "BEGIN\t%d " : "CBEGIN\t%d ", arg_count);
-        debug (f, "%d", local_count);
-        break;
-      }
-        
-      case  4: {
-        int offset = INT;
-        int n = INT;
-        for (int i = 0; i < n; i++) {
-          int typ = BYTE,
-              ind = INT;
-          int *addr = op_stack_load_addr(st, frame, typ, ind);
-          vstack_push(st, *addr);
-        };
-        size_t cls = (size_t)Bclosure(st, n, (void *)offset);
-        vstack_push(st, cls);
-        debug (f, "CLOSURE\t0x%.8x", offset);
-        break;
-      }
-          
-      case  5: {
-        int arg_count = INT;
-        int * closure = (int *)vstack_kth_from_top(st, arg_count);
-
-        vstack_reverse_count(st, arg_count);
-        frame = stack_frame_call(frame, vstack_after_top(st), ip, true, arg_count);
-        ip = bf->code_ptr + closure[0];
-
-        debug (f, "CALLC\t%d", arg_count);
-        break;
-      }
-
-        
-      case  6: {
-        int offset    = INT;
-        int arg_count = INT;
-        vstack_reverse_count(st, arg_count);
-        int *base_ptr = vstack_after_top(st);
-        frame = stack_frame_call(frame, base_ptr, ip, false, arg_count);
-        ip = bf->code_ptr + offset;
-        debug (f, "CALL\t0x%.8x %d", offset, arg_count);
-        break;
-      }
-        
-      case  7: {
-        char *name    = STRING;
-        int arg_count = INT;
-        size_t tag = Btag((void *)vstack_pop(st), LtagHash(name), BOX(arg_count));
-        vstack_push(st, tag);
-        debug (f, "TAG\t%s %d", name, arg_count);
-        break;
-      }
-        
-      case  8: {
-        int size = INT;
-        size_t arr = (size_t)Barray_patt((void *)vstack_pop(st), BOX(size));
-        vstack_push(st, arr);
-        debug (f, "ARRAY\t%d", size);
-        break;
-      }
-        
-      case  9: {
-        int ln      = INT,
-            col     = INT;
-        Bmatch_failure((void *)vstack_pop(st), fname, ln, col);
-        debug (f, "FAIL\t%d %d", ln, col);
-        break;
-      }
-
-      case 10: {
-        int ln = INT;
-        debug (f, "LINE\t%d", ln);
-        break;
-      }
-
-      default:
-        FAIL;
-      }
-      break;
-      
-    case 6: {
-      void *x = (void *)vstack_pop(st); 
-      switch (l) {
-        case 0: {
-          void *y = (void *)vstack_pop(st);
-          vstack_push(st, Bstring_patt(x, y));
+        case STRING_PATT: {
+          void *y = (void *)vstack_pop();
+          vstack_push(Bstring_patt(z, y));
           break;
         }
-        case 1: {
-          vstack_push(st, Bstring_tag_patt(x));
+        case STRING_TAG_PATT: {
+          vstack_push(Bstring_tag_patt(z));
           break;
         }
-        case 2: {
-          vstack_push(st, Barray_tag_patt(x));
+        case ARRAY_TAG_PATT: {
+          vstack_push(Barray_tag_patt(z));
           break;
         }
-        case 3: {
-          vstack_push(st, Bsexp_tag_patt(x));
+        case SEXP_TAG_PATT: {
+          vstack_push(Bsexp_tag_patt(z));
           break;
         }
-        case 4: {
-          vstack_push(st, Bboxed_patt(x));
+        case BOXED_PATT: {
+          vstack_push(Bboxed_patt(z));
           break;
         }
-        case 5: {
-          vstack_push(st, Bunboxed_patt(x));
+        case UNBOXED_PATT: {
+          vstack_push(Bunboxed_patt(z));
           break;
         }
-        case 6: {
-          vstack_push(st, Bclosure_tag_patt(x));
+        case CLOSURE_PATT: {
+          vstack_push(Bclosure_tag_patt(z));
           break;
         }
         default: {
@@ -455,60 +387,246 @@ void interpret(bytefile *bf, char *fname) {
       break;
     }
 
-    case 7: {
-      switch (l) {
-      case 0: {
-        vstack_push(st, Lread());
-        debug (f, "CALL\tLread");
-        break;
-      }
+    default:
+      switch (x) {
+        case CCONST: {
+          int val = INT;
+          vstack_push(BOX(val));
+          debug (f, "CONST\t%d", val);
+          break;
+        }
         
-      case 1: {
-        vstack_push(st, Lwrite(vstack_pop(st)));
-        debug (f, "CALL\tLwrite");
-        break;
-      }
+        case CSTRING: {
+          const char *str = STRING; 
+          int value = (size_t)Bstring((void *)str);
+          vstack_push(value);
+          debug (f, "STRING\t%s %x", str, value);
+          break;
+        }
+          
+        case  CSEXP: {
+          const char *name    = STRING;
+          int count     = INT;
+          size_t value = (size_t)Bsexp(count, UNBOX(LtagHash((void *)name)));
+          vstack_push(value);
+          debug (f, "SEXP\t%s %d", name, count);
+          break;
+        }
+        
+        case  CSTI: {
+          size_t value  = vstack_pop();
+          size_t *ptr   = (size_t *)vstack_pop();
+          *ptr = value;
+          vstack_push(value);
+          debug (f, "STI");
+          break;
+        }
+        
+        case  CSTA: {
+          size_t *v = (size_t *)vstack_pop();
+          size_t i  = vstack_pop();
+          size_t *x = (size_t *)vstack_pop();
+          size_t *ptr = Bsta(v, i, x);
+          vstack_push((size_t)ptr);
+          debug (f, "STA");
+          break;
+        }
+        
+        case  CJMP: {
+          int offset = INT;
+          ip = bf->code_ptr + offset;
+          debug (f, "JMP\t0x%.8x", offset);
+          break;
+        }
+        
+        case  CEND: 
+        case  CRET: {
+          int rv = vstack_pop();
+          vstack_pop_count(frame->local_count);
+          vstack_pop_count(frame->arg_count);
+          if (frame->cls) { vstack_pop(); }
+          vstack_push(rv);
+          ip = frame->ret_addr;
+          stack_frame* prev = frame->prev;
+          free(frame);
+          frame = prev;
+          debug (f, (l == 6) ? "END" : "RET");
+          if (frame == NULL) {
+            goto stop;  
+          }
+          break;
+        }
+        
+        case  CDROP: {
+          vstack_pop();
+          debug (f, "DROP");
+          break;
+        }
+        
+        case  CDUP: {
+          vstack_push(*(size_t *)vstack_top());
+          debug (f, "DUP");
+          break;
+        }
+        
+        case CSWAP: {
+          size_t val1 = vstack_pop();
+          size_t val2 = vstack_pop();
+          vstack_push(val1);
+          vstack_push(val2);
+          debug (f, "SWAP");
+          break;
+        }
 
-      case 2: {
-        vstack_push(st, Llength((void *)vstack_pop(st)));
-        debug (f, "CALL\tLlength");
-        break;
-      }
+        case CELEM: {
+          int i     = vstack_pop();
+          int *arr  = (int *)vstack_pop();
+          vstack_push((size_t)Belem(arr, i));
+          debug (f, "ELEM");
+          break;
+        }
+        
+        case  CCJMPZ:
+        case  CCJMPNZ: {
+          int offset = INT;
+          size_t value = UNBOX(vstack_pop());
+          if (l == 0 && value == 0 || l != 0 && value != 0) {
+            ip = bf->code_ptr + offset;
+          }
+          debug (f, (l == 0) ? "CJMPz\t0x%.8x" : "CJMPnz\t0x%.8x", offset);
+          break;
+        }
 
-      case 3: {
-        vstack_push(st, (size_t)Lstring((void *)vstack_pop(st)));
-        debug (f, "CALL\tLstring");
-        break;
-      }
+        case  CBEGIN:
+        case  CCBEGIN: {
+          int arg_count = INT, 
+              local_count = INT;
+          vstack_alloc_count(local_count);
+          frame->local_count = local_count;
+          debug (f, (l == 2) ? "BEGIN\t%d " : "CBEGIN\t%d ", arg_count);
+          debug (f, "%d", local_count);
+          break;
+        }
+          
+        case  CCLOSURE: {
+          size_t offset = INT,
+                 n = INT;
+          for (int i = 0; i < n; i++) {
+            int typ = BYTE,
+                ind = INT;
+            int *addr = op_stack_load_addr(frame, typ, ind);
+            vstack_push(*addr);
+          };
+          size_t cls = (size_t)Bclosure(n, (void *)offset);
+          vstack_push(cls);
+          debug (f, "CLOSURE\t0x%.8x", offset);
+          break;
+        }
+          
+        case  CCALLC: {
+          int arg_count = INT;
+          int * closure = (int *)vstack_kth_from_top(arg_count);
 
-      case 4: {
-        int size = INT;
-        size_t arr = (size_t)Barray(st, size);
-        vstack_push(st, arr);
-        debug (f, "CALL\tBarray\t%d", size);
-        break;
-      }
+          vstack_reverse_count(arg_count);
+          frame = stack_frame_call(frame, vstack_after_top(), ip, true, arg_count);
+          ip = bf->code_ptr + closure[0];
+
+          debug (f, "CALLC\t%d", arg_count);
+          break;
+        }
+        
+        case  CCALL: {
+          int offset    = INT;
+          int arg_count = INT;
+          vstack_reverse_count(arg_count);
+          int *base_ptr = vstack_after_top();
+          frame = stack_frame_call(frame, base_ptr, ip, false, arg_count);
+          ip = bf->code_ptr + offset;
+          debug (f, "CALL\t0x%.8x %d", offset, arg_count);
+          break;
+        }
+          
+        case  CTAG: {
+          const char *name    = STRING;
+          int arg_count = INT;
+          size_t tag = Btag((void *)vstack_pop(), LtagHash((void *)name), BOX(arg_count));
+          vstack_push(tag);
+          debug (f, "TAG\t%s %d", name, arg_count);
+          break;
+        }
+            
+        case  CARRAY: {
+          int size = INT;
+          size_t arr = (size_t)Barray_patt((void *)vstack_pop(), BOX(size));
+          vstack_push(arr);
+          debug (f, "ARRAY\t%d", size);
+          break;
+        }
+        
+        case  CFAIL: {
+          int ln      = INT,
+              col     = INT;
+          Bmatch_failure((void *)vstack_pop(), (char *)fname, ln, col);
+          debug (f, "FAIL\t%d %d", ln, col);
+          break;
+        }
+
+        case CLINE: {
+          int ln = INT;
+          debug (f, "LINE\t%d", ln);
+          break;
+        }
+
+        case CLREAD: {
+          vstack_push(Lread());
+          debug (f, "CALL\tLread");
+          break;
+        }
+        
+        case CLWRITE: {
+          vstack_push(Lwrite(vstack_pop()));
+          debug (f, "CALL\tLwrite");
+          break;
+        }
+
+        case CLLENGTH: {
+          vstack_push(Llength((void *)vstack_pop()));
+          debug (f, "CALL\tLlength");
+          break;
+        }
+
+        case CLSTRING: {
+          vstack_push((size_t)Lstring((void *)vstack_pop()));
+          debug (f, "CALL\tLstring");
+          break;
+        }
+
+        case CBARRAY: {
+          int size = INT;
+          size_t arr = (size_t)Barray(size);
+          vstack_push(arr);
+          debug (f, "CALL\tBarray\t%d", size);
+          break;
+        }
 
       default:
         FAIL;
       }
-    }
-    break;
       
-    default:
-      FAIL;
-    }
-    // vstack_debug(st, f);
+  }
+
+#ifdef DEBUG
+    vstack_debug(f);
+#endif
     debug (f, "\n");
   }
   while (1);
   stop:
-    op_stack_cleanup(st);
     __shutdown();
 }
 
 int main (int argc, char* argv[]) {
-  bytefile *f = read_file (argv[1]);
+  const bytefile *f = read_file (argv[1]);
   interpret(f, argv[1]);
   return 0;
 }

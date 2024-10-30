@@ -14,15 +14,15 @@ typedef struct {
 } bytefile;
 
 /* Gets a string from a string table by an index */
-char* get_string (bytefile *f, int pos);
+const char* get_string (bytefile *f, int pos);
 
 /* Gets a name for a public symbol */
-char* get_public_name (bytefile *f, int i);
+const char* get_public_name (bytefile *f, int i);
 
 /* Gets an offset for a publie symbol */
 int get_public_offset (bytefile *f, int i);
 
 /* Reads a binary bytecode file by name and unpacks it */
-bytefile* read_file (char *fname);
+const bytefile* read_file (char *fname);
 
 #endif

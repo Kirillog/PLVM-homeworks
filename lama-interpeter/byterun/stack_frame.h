@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include <malloc.h>
 #include "virt_stack.h"
-
 /* 
   +--------------+
   | Frame n      |
@@ -31,7 +30,7 @@ typedef struct stack_frame {
   struct stack_frame *prev;
 } stack_frame;
 
-stack_frame *init_call_stack(virt_stack *op_stack);
+stack_frame *init_call_stack();
 
 stack_frame *stack_frame_call(struct stack_frame *prev_frame, int *base_ptr, char* ret_addr, bool cls, int arg_count);
 

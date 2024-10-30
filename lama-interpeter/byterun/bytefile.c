@@ -5,11 +5,11 @@
 #include <errno.h>
 #include "../runtime/runtime.h"
 
-char* get_string (bytefile *f, int pos) {
+const char* get_string (bytefile *f, int pos) {
   return &f->string_ptr[pos];
 }
 
-char* get_public_name (bytefile *f, int i) {
+const char* get_public_name (bytefile *f, int i) {
   return get_string (f, f->public_ptr[i*2]);
 }
 
@@ -17,7 +17,7 @@ int get_public_offset (bytefile *f, int i) {
   return f->public_ptr[i*2+1];
 }
 
-bytefile* read_file (char *fname) {
+const bytefile* read_file (char *fname) {
   FILE *f = fopen (fname, "rb");
   long size;
   bytefile *file;

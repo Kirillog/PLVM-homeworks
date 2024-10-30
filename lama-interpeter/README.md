@@ -13,3 +13,9 @@ Expression tests are not very representative and pretty slow, for speed check us
 ```bash
 make -C performance
 ```
+Local results is following:
+Sort
+Sort iter       4.33
+Sort rec        3.06
+
+May fluctuate from run to run, but in general recursive implementation faster.

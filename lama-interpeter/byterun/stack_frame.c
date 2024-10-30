@@ -1,8 +1,8 @@
 #include "stack_frame.h"
 
-stack_frame *init_call_stack(virt_stack *op_stack) {
+stack_frame *init_call_stack() {
   stack_frame *frame = calloc(1, sizeof(stack_frame));
-  frame->base_ptr = vstack_after_top(op_stack);
+  frame->base_ptr = vstack_after_top();
   return frame;
 }
 

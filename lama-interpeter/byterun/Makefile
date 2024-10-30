@@ -1,4 +1,4 @@
-FLAGS=-m32 -g2 -fstack-protector-all
+FLAGS=-m32
 
 all: byterun
 

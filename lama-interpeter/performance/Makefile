@@ -10,7 +10,7 @@ check: $(TESTS)
 $(TESTS): %: %.lama
 	@echo $@
 	@LAMA=../runtime $(LAMAC) -b $@.lama && `which time` -f "$@ iter\t%U" $(BYTERUN) $@.bc
-	@LAMA=../runtime `which time` -f "$@ rec \t%U" $(LAMAC) -i $<
+	@cat Sort.input | LAMA=../runtime `which time` -f "$@ rec \t%U" $(LAMAC) -s $<
 
 clean:
 	$(RM) test*.log *.s *~ $(TESTS) *.i *.bc
