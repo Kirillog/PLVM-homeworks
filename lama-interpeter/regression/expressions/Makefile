@@ -9,7 +9,7 @@ check: $(TESTS)
 
 $(TESTS): %: %.lama
 	@echo "regression/expressions/$@"
-	@LAMA=../runtime $(LAMAC) -b $@.lama && cat $@.input | $(BYTERUN) $@.bc > $@.log && diff $@.log orig/$@.log
+	@LAMA=../../runtime $(LAMAC) -b $< && cat $@.input | $(BYTERUN) $@.bc > $@.log && diff $@.log orig/$@.log
 
 clean:
 	rm -f *.log *.s *~

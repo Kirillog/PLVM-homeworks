@@ -6,8 +6,8 @@ UNIT_TESTS_FLAGS=$(TEST_FLAGS)
 INVARIANTS_CHECK_FLAGS=$(TEST_FLAGS) -DFULL_INVARIANT_CHECKS
 
 # this target is the most important one, its' artefacts should be used as a runtime of Lama
-all: gc.o runtime.o virt_stack.o
-	ar rc runtime.a runtime.o gc.o virt_stack.o
+all: gc.o runtime.o
+	ar rc runtime.a runtime.o gc.o
 
 NEGATIVE_TESTS=$(sort $(basename $(notdir $(wildcard negative_scenarios/*_neg.c))))
 

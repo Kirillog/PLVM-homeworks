@@ -257,7 +257,6 @@ void mark_phase (void) {
 
 void compact_phase (size_t additional_size) {
   size_t live_size = compute_locations();
-
   // all in words
   size_t next_heap_size =
       MAX(live_size * EXTRA_ROOM_HEAP_COEFFICIENT + additional_size, MINIMUM_HEAP_CAPACITY);

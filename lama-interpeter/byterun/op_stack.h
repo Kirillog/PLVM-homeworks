@@ -1,6 +1,6 @@
 #ifndef OP_STACK_H
 #define OP_STACK_H
-#include "../runtime/virt_stack.h"
+#include "virt_stack.h"
 #include "stack_frame.h"
 /*
   +--------+

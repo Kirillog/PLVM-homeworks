@@ -1,7 +1,8 @@
 #ifndef STACK_FRAME_H
 #define STACK_FRAME_H
 #include <stdbool.h>
-#include "../runtime/virt_stack.h"
+#include <malloc.h>
+#include "virt_stack.h"
 
 /* 
   +--------------+
