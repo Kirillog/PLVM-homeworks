@@ -6,12 +6,12 @@
 #include "../runtime/runtime.h"
 
 const char* get_string (const bytefile *f, int pos) {
-  if (pos >= f->stringtab_size) { failure("ERROR: unexpected pos %d in string table", pos); }
+  if (pos < 0 || pos >= f->stringtab_size) { failure("ERROR: unexpected pos %d in string table", pos); }
   return &f->string_ptr[pos];
 }
 
 const char* get_public_name (const bytefile *f, int i) {
-  if (i * 2 >= f->public_symbols_number) { failure("ERROR: unexpected ind %d in public symbols table", i); }
+  if (i * 2 < 0 || i * 2 >= f->public_symbols_number) { failure("ERROR: unexpected ind %d in public symbols table", i); }
   return get_string (f, f->public_ptr[i*2]);
 }
 
