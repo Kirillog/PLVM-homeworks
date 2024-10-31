@@ -224,7 +224,8 @@ void dump_file (FILE *f, bytefile *bf) {
 }
 
 int main (int argc, char* argv[]) {
-  bytefile *f = read_file (argv[1]);
+  char *ef = NULL;
+  bytefile *f = read_file (argv[1],&ef);
   dump_file (stdout, f);
   return 0;
 }

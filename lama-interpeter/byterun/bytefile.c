@@ -5,19 +5,19 @@
 #include <errno.h>
 #include "../runtime/runtime.h"
 
-const char* get_string (bytefile *f, int pos) {
+const char* get_string (const bytefile *f, int pos) {
+  if (pos >= f->stringtab_size) { failure("ERROR: unexpected pos %d in string table", pos); }
   return &f->string_ptr[pos];
 }
 
-const char* get_public_name (bytefile *f, int i) {
+const char* get_public_name (const bytefile *f, int i) {
+  if (i * 2 >= f->public_symbols_number) { failure("ERROR: unexpected ind %d in public symbols table", i); }
   return get_string (f, f->public_ptr[i*2]);
 }
 
-int get_public_offset (bytefile *f, int i) {
-  return f->public_ptr[i*2+1];
-}
+int get_public_offset(const bytefile *f, int i) { return f->public_ptr[i * 2 + 1]; }
 
-const bytefile* read_file (char *fname) {
+bytefile *read_file (const char *fname, char **end_file) {
   FILE *f = fopen (fname, "rb");
   long size;
   bytefile *file;
@@ -31,7 +31,6 @@ const bytefile* read_file (char *fname) {
   }
 
   file = (bytefile*) malloc (sizeof(int)*4 + (size = ftell (f)));
-
   if (file == 0) {
     failure ("*** FAILURE: unable to allocate memory.\n");
   }
@@ -48,6 +47,11 @@ const bytefile* read_file (char *fname) {
   file->public_ptr  = (int*) file->buffer;
   file->code_ptr    = &file->string_ptr [file->stringtab_size];
   file->global_ptr  = (int*) malloc (file->global_area_size * sizeof (int));
-  
+  *end_file = (char *)file + size + sizeof(void *) * 4;
   return file;
+}
+
+void close_file(bytefile *f) {
+  free(f->global_ptr);
+  free(f);
 }

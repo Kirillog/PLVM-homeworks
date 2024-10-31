@@ -3,7 +3,6 @@
 #include "../runtime/runtime.h"
 #include "../runtime/gc.h"
 #include "bytefile.h"
-#include "stack_frame.h"
 #include "byterun.h"
 #include <stdio.h>
 
@@ -19,18 +18,18 @@ void vstack_init () {
   __gc_stack_top = __gc_stack_bottom - 1;
 }
 
-void vstack_push (size_t value) {
-  if (__gc_stack_top == mem) { failure("stack overflow"); }
+static inline void vstack_push (size_t value) {
+  if (__gc_stack_top == mem) { failure("ERROR: stack overflow\n"); }
   *(__gc_stack_top--) = value;
 }
 
-void vstack_alloc_count (size_t count) {
-  if (__gc_stack_top - count <= mem) { failure("stack overflow"); }
+static inline void vstack_alloc_count (size_t count) {
+  if (__gc_stack_top - count <= mem) { failure("ERROR: stack overflow\n"); }
   __gc_stack_top -= count;
 }
 
-void vstack_reverse_count (size_t count) {
-  if (__gc_stack_bottom - __gc_stack_top <= count)  { failure("stack underflow in reverse"); }
+static inline void vstack_reverse_count (size_t count) {
+  if (__gc_stack_bottom - __gc_stack_top <= count)  { failure("ERROR: stack underflow in reverse\n"); }
   for (size_t *bot = __gc_stack_top + count, *top = __gc_stack_top + 1; bot > top; --bot, ++top) {
     size_t tmp = *bot;
     *bot = *top;
@@ -38,27 +37,27 @@ void vstack_reverse_count (size_t count) {
   }
 }
 
-size_t vstack_pop () {
-  if (__gc_stack_bottom - __gc_stack_top == 1) { failure("stack underflow in pop"); }
+static inline size_t vstack_pop () {
+  if (__gc_stack_bottom - __gc_stack_top == 1) { failure("ERROR: stack underflow in pop\n"); }
   return *(++__gc_stack_top);
 }
 
-void vstack_pop_count (size_t count) {
-  if (__gc_stack_bottom - __gc_stack_top <= count)  { failure("stack underflow in pop count"); }
+static inline void vstack_pop_count (size_t count) {
+  if (__gc_stack_bottom - __gc_stack_top <= count)  { failure("ERROR: stack underflow in pop count\n"); }
   __gc_stack_top += count;
 }
 
-void *vstack_top () { return __gc_stack_top + 1; }
+static inline void *vstack_top () { return __gc_stack_top + 1; }
 
-void *vstack_after_top () { return __gc_stack_top; }
+static inline void *vstack_after_top () { return __gc_stack_top; }
 
-void *vstack_kth_ptr_from_start (size_t k) {
-  if (__gc_stack_bottom - __gc_stack_top <= k) { failure("stack underflow in kth from start"); }
+static inline void *vstack_kth_ptr_from_start (size_t k) {
+  if (__gc_stack_bottom - __gc_stack_top <= k) { failure("ERROR: stack underflow in kth from start\n"); }
   return __gc_stack_bottom - (k + 1);
 }
 
-size_t vstack_kth_from_top (size_t k) {
-  if (__gc_stack_bottom - __gc_stack_top <= k) { failure("stack underflow in kth from top"); }
+static inline size_t vstack_kth_from_top (size_t k) {
+  if (__gc_stack_bottom - __gc_stack_top <= k) { failure("ERROR: stack underflow in kth from top\n"); }
   return *(__gc_stack_top + k + 1);
 }
 
@@ -70,12 +69,55 @@ void vstack_debug(FILE* f) {
   fprintf(f, "\n+______+");
 }
 
+/* 
+  +--------------+
+  | Frame n      |
+  +--------------+
+  | base_ptr     |
+  | ret_offset   |
+  | cls          |
+  | arg_count    |
+  | local_count  | // lazy set after call
+  | prev         | --+
+  +--------------+   |
+                     |
+                     |
+  +--------------+ <-+
+  | Frame (n - 1)|
+  +--------------+
+*/
+
+typedef struct stack_frame {
+  int *base_ptr;
+  char *ret_addr;
+  bool cls;
+  int arg_count;
+  int local_count;
+  struct stack_frame *prev;
+} stack_frame;
+
+stack_frame *init_call_stack() {
+  stack_frame *frame = calloc(1, sizeof(stack_frame));
+  frame->base_ptr = vstack_after_top();
+  return frame;
+}
+
+static inline stack_frame *stack_frame_call(struct stack_frame *prev_frame, int *base_ptr, char* ret_addr, bool cls, int arg_count) {
+  stack_frame *frame  = calloc(1, sizeof(stack_frame));
+  frame->base_ptr     = base_ptr;
+  frame->ret_addr     = ret_addr;
+  frame->cls          = cls;
+  frame->arg_count    = arg_count;
+  frame->prev         = prev_frame;
+  return frame;
+}
+
 void op_stack_init(int global_area_size) {
   vstack_init();
   vstack_alloc_count(global_area_size);
 }
 
-void *op_stack_load_addr(const stack_frame * frame, location loc, size_t ind) {
+static inline void *op_stack_load_addr(const stack_frame * frame, location loc, size_t ind) {
   switch (loc) {
     case GLOBAL: {
       return (void *)vstack_kth_ptr_from_start(ind);
@@ -91,7 +133,7 @@ void *op_stack_load_addr(const stack_frame * frame, location loc, size_t ind) {
       return closure + 1 + ind;
     }
     default: {
-      failure("unexpected location");
+      failure("ERROR: unexpected location %d\n", loc);
     }
   }
 }
@@ -136,7 +178,7 @@ static void *Bsexp (int n, int tag) {
 
   return (int *)r->contents;
 }
-static void *Barray (int n) {
+static inline void *Barray (int n) {
   int     i, ai;
   data   *r;
 
@@ -154,15 +196,12 @@ static void *Bclosure (int n, void *entry) {
   data         *r;
 
   r = (data *)alloc_closure(n + 1);
-  push_extra_root((void **)&r);
   ((void **)r->contents)[0] = entry;
 
   for (i = n; i >= 1; --i) {
     ai                      = vstack_pop();
     ((int *)r->contents)[i] = ai;
   }
-
-  pop_extra_root((void **)&r);
 
   return r->contents;
 }
@@ -195,7 +234,7 @@ typedef enum BinopCode {
   OR = 12 
 } BinopCode;
 
-int binop(BinopCode opcode, int a, int b) {
+static inline int binop(BinopCode opcode, int a, int b) {
   switch (opcode) {
   case ADD:
     return a + b;
@@ -224,7 +263,7 @@ int binop(BinopCode opcode, int a, int b) {
   case OR:
     return a || b;
   default:
-    failure("ERROR: invalid binary opcode %d", opcode);
+    failure("ERROR: invalid binary opcode %d\n", opcode);
   }
 }
 
@@ -280,7 +319,7 @@ enum Code {
   CBARRAY = 116
 };
 
-void interpret(const bytefile *bf, const char *fname) {
+void interpret(const bytefile *bf, char *end_file, const char *fname) {
   #ifdef DEBUG
   FILE *f = fopen("debug.log", "w");
   #endif
@@ -288,11 +327,12 @@ void interpret(const bytefile *bf, const char *fname) {
   op_stack_init(bf->global_area_size);
   stack_frame *frame  = init_call_stack();
   char *ip     = bf->code_ptr;
-# define INT            (ip += sizeof (int), *(int*)(ip - sizeof (int)))
-# define BYTE           *ip++
-# define STRING         get_string ((bytefile *)bf, INT)
-# define FAIL           failure ("ERROR: invalid opcode %d-%d\n", h, l)
-#ifdef DEBUG
+  #define FAIL           failure ("ERROR: invalid opcode %d-%d\n", h, l)
+  #define INT            (ip + sizeof(int) < end_file) ? (ip += sizeof (int), *(int*)(ip - sizeof (int))) : (failure("ERROR: end of file reached\n"), 0)
+  #define BYTE           (ip < end_file) ? *ip++ : (failure("ERROR: end of file reached\n"), 0)
+  // get_string panics with incorrect pos argument
+  #define STRING         get_string (bf, INT)
+  #ifdef DEBUG
   static const char * const ops [] = {"+", "-", "*", "/", "%", "<", "<=", ">", ">=", "==", "!=", "&&", "!!"};
   static const char * const pats[] = {"=str", "#string", "#array", "#sexp", "#ref", "#val", "#fun"};
 #endif
@@ -626,7 +666,9 @@ void interpret(const bytefile *bf, const char *fname) {
 }
 
 int main (int argc, char* argv[]) {
-  const bytefile *f = read_file (argv[1]);
-  interpret(f, argv[1]);
+  char *ef = NULL;
+  bytefile *f = read_file (argv[1], &ef);
+  interpret(f, ef, argv[1]);
+  close_file(f);
   return 0;
 }

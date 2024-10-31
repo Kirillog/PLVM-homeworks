@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stddef.h>
-#include "stack_frame.h"
 
 // #define DEBUG
 
@@ -38,8 +37,6 @@ typedef enum location {
   ARGUMENT  = 2,
   CAPTURED  = 3,
 } location;
-
-void *op_stack_load_addr(const stack_frame * frame, location loc, size_t ind);
 
 void op_stack_cleanup();
 
