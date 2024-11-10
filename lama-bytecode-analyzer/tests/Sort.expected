@@ -1,6 +1,6 @@
-Count 31 of len 1:
+Count 29 of len 1:
 DROP
-Count 28 of len 1:
+Count 27 of len 1:
 DUP
 Count 21 of len 1:
 ELEM
@@ -9,22 +9,20 @@ CONST	1
 Count 13 of len 2:
 CONST	1
 ELEM
-Count 12 of len 1:
-CONST	0
 Count 11 of len 2:
 DROP
 DUP
 Count 11 of len 2:
 DUP
 CONST	1
-Count 10 of len 2:
+Count 11 of len 1:
+CONST	0
+Count 9 of len 2:
 DROP
 DROP
 Count 8 of len 2:
 CONST	0
 ELEM
-Count 8 of len 1:
-LD	A(0)
 Count 7 of len 2:
 ELEM
 DROP
@@ -32,17 +30,14 @@ Count 7 of len 2:
 DUP
 CONST	0
 Count 6 of len 1:
-END
-Count 5 of len 1:
-JMP	0x00000308
+LD	A(0)
 Count 4 of len 2:
 DUP
 DUP
 Count 4 of len 1:
 SEXP	cons 2
-Count 3 of len 2:
-CALL	Barray	2
-JMP	0x00000308
+Count 4 of len 1:
+END
 Count 3 of len 2:
 ST	L(0)
 DROP
@@ -52,8 +47,6 @@ ST	L(0)
 Count 3 of len 2:
 DUP
 ARRAY	2
-Count 3 of len 1:
-CALL	Barray	2
 Count 3 of len 1:
 LD	L(3)
 Count 3 of len 1:
@@ -66,6 +59,9 @@ Count 3 of len 1:
 ARRAY	2
 Count 3 of len 1:
 CALL	0x0000015f 1
+Count 2 of len 2:
+CALL	Barray	2
+JMP	0x00000308
 Count 2 of len 2:
 SEXP	cons 2
 CALL	Barray	2
@@ -85,6 +81,14 @@ Count 2 of len 2:
 END
 BEGIN	1 0
 Count 2 of len 1:
+LD	A(0)
+Count 2 of len 1:
+DROP
+Count 2 of len 1:
+JMP	0x00000308
+Count 2 of len 1:
+CALL	Barray	2
+Count 2 of len 1:
 LD	L(1)
 Count 2 of len 1:
 TAG	cons 2
@@ -95,16 +99,9 @@ CALL	0x00000097 1
 Count 2 of len 1:
 JMP	0x00000074
 Count 2 of len 1:
-BINOP	-
-Count 2 of len 1:
 BEGIN	1 0
 Count 2 of len 1:
 CALL	0x0000002b 1
-Count 2 of len 1:
-BEGIN	2 0
-Count 1 of len 2:
-BINOP	-
-END
 Count 1 of len 2:
 LD	A(1)
 BINOP	-
@@ -126,6 +123,9 @@ BEGIN	2 0
 Count 1 of len 2:
 JMP	0x00000308
 END
+Count 1 of len 2:
+CALL	Barray	2
+JMP	0x00000308
 Count 1 of len 2:
 LD	A(0)
 CALL	Barray	2
@@ -139,17 +139,11 @@ Count 1 of len 2:
 DROP
 CONST	0
 Count 1 of len 2:
-DUP
+DROP
 DROP
 Count 1 of len 2:
-JMP	0x00000308
 DUP
-Count 1 of len 2:
-JMP	0x00000308
-JMP	0x00000308
-Count 1 of len 2:
-FAIL	11 17
-JMP	0x00000308
+DROP
 Count 1 of len 2:
 JMP	0x00000308
 FAIL	11 17
@@ -463,13 +457,27 @@ Count 1 of len 2:
 BEGIN	2 0
 LINE	29
 Count 1 of len 1:
+BINOP	-
+Count 1 of len 1:
 LD	A(1)
 Count 1 of len 1:
 LINE	2
 Count 1 of len 1:
 LINE	1
 Count 1 of len 1:
+BEGIN	2 0
+Count 1 of len 1:
+END
+Count 1 of len 1:
+JMP	0x00000308
+Count 1 of len 1:
+CALL	Barray	2
+Count 1 of len 1:
 LINE	13
+Count 1 of len 1:
+CONST	0
+Count 1 of len 1:
+DUP
 Count 1 of len 1:
 FAIL	11 17
 Count 1 of len 1:
@@ -543,6 +551,8 @@ LINE	24
 Count 1 of len 1:
 LINE	22
 Count 1 of len 1:
+BINOP	-
+Count 1 of len 1:
 CJMPz	0x0000006a
 Count 1 of len 1:
 LINE	28
@@ -554,3 +564,5 @@ Count 1 of len 1:
 LINE	31
 Count 1 of len 1:
 LINE	29
+Count 1 of len 1:
+BEGIN	2 0

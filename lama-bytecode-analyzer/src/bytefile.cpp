@@ -61,21 +61,28 @@ Bytefile::~Bytefile() {
     free(f_->global_ptr);
 }
 
-const char *Bytefile::get_string(int pos) const {
-    if (pos < 0 || pos >= f_->stringtab_size) {
+const char *Bytefile::get_string(size_t pos) const {
+    if (pos >= f_->stringtab_size) {
         failure("unexpected pos %d in string table", pos);
     }
     return &f_->string_ptr[pos];
 }
 
-const char *Bytefile::get_public_name(int i) const {
-    if (i * 2 < 0 || i * 2 >= f_->public_symbols_number) {
+size_t Bytefile::get_public_symbols_size() const {
+    return f_->public_symbols_number;
+}
+
+const char *Bytefile::get_public_name(size_t i) const {
+    if (i >= f_->public_symbols_number) {
         failure("unexpected ind %d in public symbols table", i);
     }
     return get_string(f_->public_ptr[i * 2]);
 }
 
-int Bytefile::get_public_offset(int i) const {
+size_t Bytefile::get_public_offset(size_t i) const {
+    if (i >= f_->public_symbols_number) {
+        failure("unexpected ind %d in public symbols table", i);
+    }
     return f_->public_ptr[i * 2 + 1];
 }
 

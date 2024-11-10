@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include "byteiter.h"
 
 struct ByteCodeIter;
 
@@ -34,16 +33,16 @@ public:
 
     const char *get_end() const;
 
-    ByteCodeIter from_offset(int offset) const;
-
     /* Gets a string from a string table by an index */
-    const char *get_string(int pos) const;
+    const char *get_string(size_t pos) const;
+
+    size_t get_public_symbols_size() const;
 
     /* Gets a name for a public symbol */
-    const char *get_public_name(int i) const;
+    const char *get_public_name(size_t i) const;
 
     /* Gets an offset for a public symbol */
-    int get_public_offset(int i) const;
+    size_t get_public_offset(size_t i) const;
 
     void disassemble(FILE *f) const;
 

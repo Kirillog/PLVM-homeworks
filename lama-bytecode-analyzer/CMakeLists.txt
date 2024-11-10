@@ -7,10 +7,4 @@ add_compile_options(-g)
 
 add_executable(bytecode_analyzer 
     src/analyzer.cpp
-    src/bytefile.cpp
-    src/byteiter.cpp)
-
-add_executable(disasm
-    src/disasm.cpp
     src/bytefile.cpp)
-
