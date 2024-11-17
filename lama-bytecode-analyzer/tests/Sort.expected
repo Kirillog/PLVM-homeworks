@@ -1,6 +1,6 @@
-Count 29 of len 1:
+Count 31 of len 1:
 DROP
-Count 27 of len 1:
+Count 28 of len 1:
 DUP
 Count 21 of len 1:
 ELEM
@@ -9,35 +9,33 @@ CONST	1
 Count 13 of len 2:
 CONST	1
 ELEM
+Count 12 of len 1:
+CONST	0
 Count 11 of len 2:
 DROP
 DUP
 Count 11 of len 2:
 DUP
 CONST	1
-Count 11 of len 1:
-CONST	0
-Count 9 of len 2:
+Count 10 of len 2:
 DROP
 DROP
 Count 8 of len 2:
 CONST	0
 ELEM
+Count 8 of len 1:
+LD	A(0)
 Count 7 of len 2:
 ELEM
 DROP
 Count 7 of len 2:
 DUP
 CONST	0
-Count 6 of len 1:
-LD	A(0)
 Count 4 of len 2:
 DUP
 DUP
 Count 4 of len 1:
 SEXP	cons 2
-Count 4 of len 1:
-END
 Count 3 of len 2:
 ST	L(0)
 DROP
@@ -48,20 +46,15 @@ Count 3 of len 2:
 DUP
 ARRAY	2
 Count 3 of len 1:
-LD	L(3)
+CALL	Barray	2
 Count 3 of len 1:
-JMP	0x0000015e
+LD	L(3)
 Count 3 of len 1:
 LD	L(0)
 Count 3 of len 1:
 ST	L(0)
 Count 3 of len 1:
 ARRAY	2
-Count 3 of len 1:
-CALL	0x0000015f 1
-Count 2 of len 2:
-CALL	Barray	2
-JMP	0x00000308
 Count 2 of len 2:
 SEXP	cons 2
 CALL	Barray	2
@@ -74,20 +67,6 @@ CONST	0
 Count 2 of len 2:
 ELEM
 CONST	1
-Count 2 of len 2:
-CALL	0x0000015f 1
-DUP
-Count 2 of len 2:
-END
-BEGIN	1 0
-Count 2 of len 1:
-LD	A(0)
-Count 2 of len 1:
-DROP
-Count 2 of len 1:
-JMP	0x00000308
-Count 2 of len 1:
-CALL	Barray	2
 Count 2 of len 1:
 LD	L(1)
 Count 2 of len 1:
@@ -95,13 +74,11 @@ TAG	cons 2
 Count 2 of len 1:
 BINOP	==
 Count 2 of len 1:
-CALL	0x00000097 1
-Count 2 of len 1:
-JMP	0x00000074
+BINOP	-
 Count 2 of len 1:
 BEGIN	1 0
 Count 2 of len 1:
-CALL	0x0000002b 1
+BEGIN	2 0
 Count 1 of len 2:
 LD	A(1)
 BINOP	-
@@ -118,15 +95,6 @@ Count 1 of len 2:
 BEGIN	2 0
 LINE	1
 Count 1 of len 2:
-END
-BEGIN	2 0
-Count 1 of len 2:
-JMP	0x00000308
-END
-Count 1 of len 2:
-CALL	Barray	2
-JMP	0x00000308
-Count 1 of len 2:
 LD	A(0)
 CALL	Barray	2
 Count 1 of len 2:
@@ -138,15 +106,9 @@ LINE	13
 Count 1 of len 2:
 DROP
 CONST	0
-Count 1 of len 2:
-DROP
-DROP
 Count 1 of len 2:
 DUP
 DROP
-Count 1 of len 2:
-JMP	0x00000308
-FAIL	11 17
 Count 1 of len 2:
 LD	L(4)
 SEXP	cons 2
@@ -172,36 +134,12 @@ Count 1 of len 2:
 ELEM
 ST	L(5)
 Count 1 of len 2:
-JMP	0x000002d9
-DUP
-Count 1 of len 2:
-DROP
-JMP	0x000002d9
-Count 1 of len 2:
-CJMPnz	0x0000028b
-DROP
-Count 1 of len 2:
-ARRAY	2
-CJMPnz	0x0000028b
-Count 1 of len 2:
-LD	L(2)
-CALL	0x0000015f 1
-Count 1 of len 2:
 LINE	11
 LD	L(2)
-Count 1 of len 2:
-JMP	0x00000308
-LINE	11
 Count 1 of len 2:
 ELEM
 SEXP	cons 2
 Count 1 of len 2:
-CALL	0x0000015f 1
-CONST	1
-Count 1 of len 2:
-SEXP	cons 2
-CALL	0x0000015f 1
-Count 1 of len 2:
 LD	L(0)
 SEXP	cons 2
 Count 1 of len 2:
@@ -217,20 +155,8 @@ Count 1 of len 2:
 CONST	1
 LINE	10
 Count 1 of len 2:
-CJMPz	0x00000266
-CONST	1
-Count 1 of len 2:
-BINOP	>
-CJMPz	0x00000266
-Count 1 of len 2:
 CONST	0
 BINOP	>
-Count 1 of len 2:
-CALL	0x00000309 2
-CONST	0
-Count 1 of len 2:
-LD	L(1)
-CALL	0x00000309 2
 Count 1 of len 2:
 LD	L(3)
 LD	L(1)
@@ -259,33 +185,9 @@ Count 1 of len 2:
 ELEM
 ST	L(3)
 Count 1 of len 2:
-JMP	0x00000182
-DUP
-Count 1 of len 2:
-DROP
-JMP	0x00000182
-Count 1 of len 2:
-CJMPnz	0x000001ac
-DROP
-Count 1 of len 2:
-TAG	cons 2
-CJMPnz	0x000001ac
-Count 1 of len 2:
 ELEM
 DUP
 Count 1 of len 2:
-JMP	0x000002ec
-DUP
-Count 1 of len 2:
-DROP
-JMP	0x000002ec
-Count 1 of len 2:
-CJMPnz	0x00000188
-DROP
-Count 1 of len 2:
-TAG	cons 2
-CJMPnz	0x00000188
-Count 1 of len 2:
 LD	A(0)
 DUP
 Count 1 of len 2:
@@ -295,101 +197,29 @@ Count 1 of len 2:
 BEGIN	1 6
 LINE	7
 Count 1 of len 2:
-END
-BEGIN	1 6
-Count 1 of len 2:
-JMP	0x0000015e
-END
-Count 1 of len 2:
-FAIL	18 9
-JMP	0x0000015e
-Count 1 of len 2:
-JMP	0x0000015e
-FAIL	18 9
-Count 1 of len 2:
-LD	L(0)
-JMP	0x0000015e
-Count 1 of len 2:
 LINE	20
 LD	L(0)
 Count 1 of len 2:
 DROP
 LINE	20
-Count 1 of len 2:
-CJMPz	0x00000112
-DUP
-Count 1 of len 2:
-BINOP	==
-CJMPz	0x00000112
 Count 1 of len 2:
 CONST	0
 BINOP	==
 Count 1 of len 2:
-JMP	0x00000150
-DUP
-Count 1 of len 2:
-DROP
-JMP	0x00000150
-Count 1 of len 2:
-CJMPnz	0x00000118
-DROP
-Count 1 of len 2:
-ARRAY	2
-CJMPnz	0x00000118
-Count 1 of len 2:
-JMP	0x0000015e
-DUP
-Count 1 of len 2:
-CALL	0x00000097 1
-JMP	0x0000015e
-Count 1 of len 2:
-LD	L(0)
-CALL	0x00000097 1
-Count 1 of len 2:
 LINE	19
 LD	L(0)
 Count 1 of len 2:
 DROP
 LINE	19
-Count 1 of len 2:
-CJMPz	0x000000bf
-DUP
-Count 1 of len 2:
-BINOP	==
-CJMPz	0x000000bf
 Count 1 of len 2:
 CONST	1
 BINOP	==
 Count 1 of len 2:
-JMP	0x00000106
-DUP
-Count 1 of len 2:
-DROP
-JMP	0x00000106
-Count 1 of len 2:
-CJMPnz	0x000000c5
-DROP
-Count 1 of len 2:
-ARRAY	2
-CJMPnz	0x000000c5
-Count 1 of len 2:
-LD	A(0)
-CALL	0x0000015f 1
-Count 1 of len 2:
 LINE	18
 LD	A(0)
 Count 1 of len 2:
 BEGIN	1 1
 LINE	18
-Count 1 of len 2:
-END
-BEGIN	1 1
-Count 1 of len 2:
-CALL	0x00000097 1
-END
-Count 1 of len 2:
-LD	A(0)
-CALL	0x00000097 1
 Count 1 of len 2:
 LINE	24
 LD	A(0)
@@ -400,24 +230,6 @@ Count 1 of len 2:
 BEGIN	1 0
 LINE	22
 Count 1 of len 2:
-JMP	0x00000074
-END
-Count 1 of len 2:
-CONST	0
-JMP	0x00000074
-Count 1 of len 2:
-JMP	0x00000074
-CONST	0
-Count 1 of len 2:
-SEXP	cons 2
-JMP	0x00000074
-Count 1 of len 2:
-CALL	0x0000002b 1
-SEXP	cons 2
-Count 1 of len 2:
-BINOP	-
-CALL	0x0000002b 1
-Count 1 of len 2:
 CONST	1
 BINOP	-
 Count 1 of len 2:
@@ -426,27 +238,12 @@ CONST	1
 Count 1 of len 2:
 LD	A(0)
 LD	A(0)
-Count 1 of len 2:
-CJMPz	0x0000006a
-LD	A(0)
-Count 1 of len 2:
-LD	A(0)
-CJMPz	0x0000006a
 Count 1 of len 2:
 LINE	28
 LD	A(0)
 Count 1 of len 2:
 BEGIN	1 0
 LINE	28
-Count 1 of len 2:
-CALL	0x00000075 1
-END
-Count 1 of len 2:
-CALL	0x0000002b 1
-CALL	0x00000075 1
-Count 1 of len 2:
-CONST	1000
-CALL	0x0000002b 1
 Count 1 of len 2:
 LINE	31
 CONST	1000
@@ -456,8 +253,6 @@ LINE	31
 Count 1 of len 2:
 BEGIN	2 0
 LINE	29
-Count 1 of len 1:
-BINOP	-
 Count 1 of len 1:
 LD	A(1)
 Count 1 of len 1:
@@ -465,19 +260,7 @@ LINE	2
 Count 1 of len 1:
 LINE	1
 Count 1 of len 1:
-BEGIN	2 0
-Count 1 of len 1:
-END
-Count 1 of len 1:
-JMP	0x00000308
-Count 1 of len 1:
-CALL	Barray	2
-Count 1 of len 1:
 LINE	13
-Count 1 of len 1:
-CONST	0
-Count 1 of len 1:
-DUP
 Count 1 of len 1:
 FAIL	11 17
 Count 1 of len 1:
@@ -489,21 +272,13 @@ ST	L(4)
 Count 1 of len 1:
 ST	L(5)
 Count 1 of len 1:
-JMP	0x000002d9
-Count 1 of len 1:
-CJMPnz	0x0000028b
-Count 1 of len 1:
 LD	L(2)
 Count 1 of len 1:
 LINE	11
 Count 1 of len 1:
 LINE	10
 Count 1 of len 1:
-CJMPz	0x00000266
-Count 1 of len 1:
 BINOP	>
-Count 1 of len 1:
-CALL	0x00000309 2
 Count 1 of len 1:
 LINE	9
 Count 1 of len 1:
@@ -513,14 +288,6 @@ ST	L(2)
 Count 1 of len 1:
 ST	L(3)
 Count 1 of len 1:
-JMP	0x00000182
-Count 1 of len 1:
-CJMPnz	0x000001ac
-Count 1 of len 1:
-JMP	0x000002ec
-Count 1 of len 1:
-CJMPnz	0x00000188
-Count 1 of len 1:
 LINE	7
 Count 1 of len 1:
 BEGIN	1 6
@@ -529,19 +296,7 @@ FAIL	18 9
 Count 1 of len 1:
 LINE	20
 Count 1 of len 1:
-CJMPz	0x00000112
-Count 1 of len 1:
-JMP	0x00000150
-Count 1 of len 1:
-CJMPnz	0x00000118
-Count 1 of len 1:
 LINE	19
-Count 1 of len 1:
-CJMPz	0x000000bf
-Count 1 of len 1:
-JMP	0x00000106
-Count 1 of len 1:
-CJMPnz	0x000000c5
 Count 1 of len 1:
 LINE	18
 Count 1 of len 1:
@@ -551,18 +306,10 @@ LINE	24
 Count 1 of len 1:
 LINE	22
 Count 1 of len 1:
-BINOP	-
-Count 1 of len 1:
-CJMPz	0x0000006a
-Count 1 of len 1:
 LINE	28
-Count 1 of len 1:
-CALL	0x00000075 1
 Count 1 of len 1:
 CONST	1000
 Count 1 of len 1:
 LINE	31
 Count 1 of len 1:
 LINE	29
-Count 1 of len 1:
-BEGIN	2 0

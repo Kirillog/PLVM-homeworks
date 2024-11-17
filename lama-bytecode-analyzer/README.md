@@ -11,9 +11,9 @@ cmake -B build && cmake --build build
 ### Test
 Sort.bc produces following output:
 ```
-Count 29 of len 1:
+Count 31 of len 1:
 DROP
-Count 27 of len 1:
+Count 28 of len 1:
 DUP
 Count 21 of len 1:
 ELEM
