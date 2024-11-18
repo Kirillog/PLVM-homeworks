@@ -83,7 +83,11 @@ size_t Bytefile::get_public_offset(size_t i) const {
     if (i >= f_->public_symbols_number) {
         failure("unexpected ind %d in public symbols table", i);
     }
-    return f_->public_ptr[i * 2 + 1];
+    size_t offset = f_->public_ptr[i * 2 + 1];
+    if (f_->code_ptr + offset >= f_->end) {
+        failure("too big public offset %d stored in %d byte", offset, sizeof(int) * (3 + i * 2 + 1));
+    } 
+    return offset;
 }
 
 const char *Bytefile::get_ip() const {

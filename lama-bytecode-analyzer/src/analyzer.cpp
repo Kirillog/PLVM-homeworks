@@ -319,10 +319,7 @@ enum Label {
 void count_occurs_impl(const Bytefile &file, const std::vector<Label> &labels, size_t insn_count, std::unordered_map<StoredBlock, size_t, StoredBlockHash> &block_count, const char *&iter) {
     Block block{iter, 0};
     for (size_t i = 0; i < insn_count; ++i) {
-        // fprintf(stderr, "label: %d  ", labels[iter - file.get_ip()]);
-        // fprintf(stderr, "offset: 0x%x\n", iter - file.get_ip());
         auto [code, size] = print_instruction(NULL, &consume, file, iter); 
-        // fprintf(stderr, "code: %d\n", code);
         block.push_back(size);
         auto label = labels[iter - file.get_ip()];
         if (code == CSTOP || label != C_VISITED) {
@@ -339,13 +336,9 @@ void count_occurs_impl(const Bytefile &file, const std::vector<Label> &labels, s
             block_count[block.sb] += 1;
         }
         block.pop_front();
-        // fprintf(stderr, "label: %d  ", labels[iter - file.get_ip()]);
-        // fprintf(stderr, "offset: 0x%x\n", iter - file.get_ip());
         prev = instr;
         instr = print_instruction(NULL, &consume, file, iter);
         block.push_back(instr.size);
-        // fprintf(stderr, "code: %d\n", instr.code);
-
     } while (labels[iter - file.get_ip()] == C_VISITED);
 }
 
@@ -357,8 +350,6 @@ std::vector<BlockCount> count_occurencies(const Bytefile &file, const std::vecto
     
     while (iter < file.get_end()) {
         count_occurs_impl(file, labels, insn_count, block_count, iter);
-        // fprintf(stderr, "stop at label: %d  ", labels[iter - file.get_ip()]);
-        // fprintf(stderr, "offset: 0x%x\n", iter - file.get_ip());
         while (iter < file.get_end() && labels[iter - begin] == NOT_VISITED) {
             ++iter;
         }
@@ -385,10 +376,16 @@ void print_sequencies(FILE *f, const Bytefile &file, std::vector<BlockCount> &&c
 std::vector<Label> label_code(const Bytefile &f) {
     std::vector<Label> labels(f.get_end() - f.get_ip(), NOT_VISITED);
     std::deque<size_t> q;
+
+    auto visit_offset = [&](size_t offset, Label label) {
+        if (labels[offset] == NOT_VISITED) {
+            labels[offset] = label;
+            q.push_back(offset);
+        }
+    };
+
     for (size_t i = 0; i < f.get_public_symbols_size(); ++i) {
-        size_t offset = f.get_public_offset(i);
-        q.push_back(offset);
-        labels[offset] = EP_VISITED;
+        visit_offset(f.get_public_offset(i), EP_VISITED);
     }
     const char *begin = f.get_ip();
     while (!q.empty()) {
@@ -399,24 +396,15 @@ std::vector<Label> label_code(const Bytefile &f) {
         if (code == CJMP) {
             const char *t = begin + offset + sizeof(char);
             size_t to = next_int(t);
-            if (labels[to] == NOT_VISITED) {
-                labels[to] = EP_VISITED;
-                q.push_back(to);
-            }
+            visit_offset(to, EP_VISITED);
         } else if (code == CCJMPZ || code == CCJMPNZ || code == CCALL) {
             const char *t = begin + offset + sizeof(char);
             std::array<size_t, 2> p = {(size_t)next_int(t), (size_t)(iter - begin)};
             for (auto to : p) {
-                if (labels[to] == NOT_VISITED) {
-                    labels[to] = EP_VISITED;
-                    q.push_back(to);
-                }
+                visit_offset(to, EP_VISITED);
             }
         } else if (code != CEND) {
-            if (labels[iter - begin] == NOT_VISITED) {
-                labels[iter - begin] = C_VISITED;
-                q.push_back(iter - begin);
-            }
+            visit_offset(iter - begin, C_VISITED);
         }
     }
     return labels;
