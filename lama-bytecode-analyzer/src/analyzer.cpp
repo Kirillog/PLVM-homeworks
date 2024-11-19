@@ -310,7 +310,7 @@ struct BlockCount {
     }
 };
 
-enum Label {
+enum Label : char {
     NOT_VISITED = 0,
     EP_VISITED = 1,
     C_VISITED = 2
