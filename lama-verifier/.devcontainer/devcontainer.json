@@ -1,0 +1,20 @@
+{
+    "name": "Lama",
+
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "remoteUser": "vscode",
+    "workspaceFolder": "/workspaces/PLVM-homeworks/lama-verifier",
+    "runArgs": [
+        "--name",
+        "lama-verifier"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "llvm-vs-code-extensions.vscode-clangd"
+            ]
+        }
+    }
+}
