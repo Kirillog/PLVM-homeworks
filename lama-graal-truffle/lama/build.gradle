@@ -1,0 +1,42 @@
+group 'ru.mkn.lama'
+version '1.0'
+
+apply plugin: 'java'
+apply plugin: 'antlr'
+
+
+repositories {
+    mavenCentral()
+}
+
+generateGrammarSource {
+    maxHeapSize = "64m"
+    arguments += ["-no-listener", "-long-messages", "-package", "ru.mkn.lama.parser"]
+}
+
+ext {
+    graal_version = '22.3.0'
+    antlr_version = '4.12.0'
+}
+
+dependencies {
+    implementation "org.graalvm.truffle:truffle-api:$graal_version"
+    annotationProcessor "org.graalvm.truffle:truffle-dsl-processor:$graal_version"
+
+    testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"
+    antlr "org.antlr:antlr4:$antlr_version"
+}
+
+// These arguments are required because of the JVM 11's module system -
+// we grant this module access to the packages from the Truffle API JAR
+test {
+    useJUnitPlatform()
+
+    jvmArgs '-ea',
+            '-Dgraalvm.locatorDisabled=true'
+
+    testLogging {
+        events 'failed'
+        exceptionFormat 'full'
+    }
+}

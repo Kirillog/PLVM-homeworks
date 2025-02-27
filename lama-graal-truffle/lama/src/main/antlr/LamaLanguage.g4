@@ -1,0 +1,191 @@
+grammar LamaLanguage;
+
+@parser::header
+{
+// DO NOT MODIFY - generated from LamaLanguage.g4
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.source.Source;
+import ru.mkn.lama.LamaLanguage;
+import ru.mkn.lama.nodes.LamaNode;
+import ru.mkn.lama.nodes.LamaRootNode;
+import ru.mkn.lama.nodes.expr.LamaExpressionListNode;
+import ru.mkn.lama.parser.LamaNodeFactory;
+import ru.mkn.lama.parser.LamaParseError;
+}
+
+@lexer::header
+{
+// DO NOT MODIFY - generated from LamaLanguage.g4
+}
+
+@parser::members
+{
+private LamaNodeFactory factory;
+private Source source;
+
+private static final class BailoutErrorListener extends BaseErrorListener {
+    private final Source source;
+    BailoutErrorListener(Source source) {
+        this.source = source;
+    }
+    @Override
+    public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String msg, RecognitionException e) {
+        throwParseError(source, line, charPositionInLine, (Token) offendingSymbol, msg);
+    }
+}
+
+public void SemErr(Token token, String message) {
+    assert token != null;
+    throwParseError(source, token.getLine(), token.getCharPositionInLine(), token, message);
+}
+
+private static void throwParseError(Source source, int line, int charPositionInLine, Token token, String message) {
+    int col = charPositionInLine + 1;
+    String location = "-- line " + line + " col " + col + ": ";
+    int length = token == null ? 1 : Math.max(token.getStopIndex() - token.getStartIndex(), 0);
+    throw new LamaParseError(source, line, col, length, String.format("Error(s) parsing script:%n" + location + message));
+}
+
+public static LamaRootNode parseLama(LamaLanguage language, Source source) {
+    LamaLanguageLexer lexer = new LamaLanguageLexer(CharStreams.fromString(source.getCharacters().toString()));
+    LamaLanguageParser parser = new LamaLanguageParser(new CommonTokenStream(lexer));
+    lexer.removeErrorListeners();
+    parser.removeErrorListeners();
+    BailoutErrorListener listener = new BailoutErrorListener(source);
+    lexer.addErrorListener(listener);
+    parser.addErrorListener(listener);
+    parser.factory = new LamaNodeFactory(language, source);
+    parser.source = source;
+    parser.compilationUnit();
+    return parser.factory.getRootNode();
+}
+}
+
+// Parser
+
+//compilationUnit : (importExpression)* scopeExpression EOF;
+//importExpression : 'import' UIDENT ';'
+
+compilationUnit
+: scopeExpression { factory.setMainBody($scopeExpression.result); }
+EOF;
+
+scopeExpression returns [LamaExpressionListNode result]
+: {
+    factory.startScope();
+  }
+(definition)* { LamaExpressionListNode expr = null; }
+    (expression { expr = $expression.result; }
+    )? { $result = factory.finishScope(expr); }
+;
+definition
+:
+    variableDefinition;
+//    | functionDefinition;
+variableDefinition :
+'var' variableDefinitionItem (',' variableDefinitionItem)* ';';
+variableDefinitionItem :
+ LIDENT ('=' binaryExpression)? { factory.addVariableDefinition($LIDENT, $binaryExpression.ctx != null ? $binaryExpression.result : null); }
+;
+//functionDefinition : 'fun' LIDENT '(' functionArguments ')' functionBody;
+//functionArguments : (LIDENT (',' LIDENT)*)?;
+//functionBody : '{' scopeExpression '}';
+
+expression returns [LamaExpressionListNode result]
+: { List<LamaNode> body = new ArrayList<>(); }
+ (
+  binaryExpression ';' { body.add($binaryExpression.result); }
+  )*
+  binaryExpression  { body.add($binaryExpression.result); }
+ { $result = factory.createExpression(body); };
+binaryExpression returns [LamaNode result]
+:
+     binaryOperand {$result = $binaryOperand.result; }
+    | l=binaryExpression op=(MUL|DIV|MOD) r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
+    | l=binaryExpression op=(PLUS|MINUS) r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
+//    | binaryOperand '==' binaryOperand
+//    | binaryOperand '!=' binaryOperand
+//    | binaryOperand '<=' binaryOperand
+//    | binaryOperand '<' binaryOperand
+//    | binaryOperand '>=' binaryOperand
+//    | binaryOperand '>' binaryOperand
+//    | binaryOperand '&&' binaryOperand
+//    | binaryOperand '!!' binaryOperand
+//    | <assoc=right> binaryOperand ':' binaryOperand
+    | <assoc=right> l=binaryExpression ':=' r=binaryExpression { $result = factory.createAssignment($l.result, $r.result); };
+binaryOperand returns [LamaNode result]:
+    primary { $result = $primary.result; };
+//    | binaryOperand '(' (expression (',' expression)*)? ')'
+//    | binaryOperand '[' expression ']';
+primary returns [LamaNode result]:
+    DECIMAL  { $result = factory.createIntLiteral($DECIMAL); }
+    | STRING { $result = factory.createStringLiteral($STRING); }
+//    | CHAR
+    | LIDENT { $result = factory.createIdentifier($LIDENT); }
+//    | 'true'
+//    | 'false'
+//    | 'skip'
+    | '(' scopeExpression ')' { $result = $scopeExpression.result; }
+;
+//    | listExpression
+//    | arrayExpression
+//    | sExpression
+//    | ifExpression
+//    | whileDoExpression
+//    | doWhileExpression
+//    | forExpression
+//    | caseExpression;
+
+arrayExpression : '[' (expression (',' expression)*)? ']';
+listExpression : '{' (expression (',' expression)*)? '}';
+sExpression : UIDENT ('(' (expression (',' expression)*)? ')')?;
+
+ifExpression : 'if' expression 'then' scopeExpression (elsePart)? 'fi';
+elsePart :
+    'elif' expression 'then' scopeExpression (elsePart)?
+    | 'else' scopeExpression;
+
+whileDoExpression : 'while' expression 'do' scopeExpression 'od';
+doWhileExpression : 'do' scopeExpression 'while' expression 'od';
+forExpression : 'for' scopeExpression ',' expression ',' expression 'do' scopeExpression 'od';
+
+pattern :
+    DECIMAL
+    | '_'
+    | '[' (pattern (',' pattern)*)? ']'
+    | UIDENT '(' (pattern (',' pattern)*)? ')'
+    | LIDENT ('@' pattern)?;
+
+caseExpression : 'case' expression 'of' caseBranches 'esac';
+caseBranches : caseBranch ('|' caseBranch)*;
+caseBranch : pattern '->' scopeExpression;
+
+// Lexer
+
+fragment STRING_CHAR : ~('"') | '"' '"';
+
+UIDENT : [A-Z][a-zA-Z_0-9]*;
+LIDENT : [a-z][a-zA-Z_0-9]*;
+DECIMAL : ('-')?[0-9]+;
+STRING : '"' STRING_CHAR* '"';
+CHAR : '\'' (~('\'') | '\'\'' | '\n' | '\t') '\'';
+
+PLUS: '+';
+MINUS: '-';
+MUL: '*';
+DIV: '/';
+MOD: '%';
+ASSN: ':=';
+NOT: '!';
+AND: '&&';
+OR: '!!';
+LT: '<';
+GT: '>';
+EQ: '==';
+NE: '/=';
+LE: '<=';
+GE: '>=';
+
+WS : [ \t\r\n]+ -> skip;
+COMMENT : '(*' .*? '*)' -> skip;
+LINE_COMMENT : '--' ~[\r\n]* -> skip;
