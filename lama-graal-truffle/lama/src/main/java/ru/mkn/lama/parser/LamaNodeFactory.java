@@ -10,9 +10,7 @@ import ru.mkn.lama.LamaLanguage;
 import ru.mkn.lama.nodes.FunctionRootNode;
 import ru.mkn.lama.nodes.LamaNode;
 import ru.mkn.lama.nodes.LamaRootNode;
-import ru.mkn.lama.nodes.expr.LamaExpressionListNode;
-import ru.mkn.lama.nodes.expr.LamaIntLiteralNode;
-import ru.mkn.lama.nodes.expr.LamaStringLiteralNode;
+import ru.mkn.lama.nodes.expr.*;
 import ru.mkn.lama.nodes.expr.binary.*;
 import ru.mkn.lama.nodes.function.*;
 import ru.mkn.lama.nodes.vars.*;
@@ -96,14 +94,18 @@ public class LamaNodeFactory {
         lexicalScope = new LexicalScope(lexicalScope);
     }
 
-    public LamaExpressionListNode finishScope(LamaExpressionListNode exp) {
+    public LamaExpressionListNode finishScope(LamaExpressionListNode exp, boolean expand) {
         if (exp == null) {
-            lexicalScope = lexicalScope.outer;
+            if (!expand) {
+                lexicalScope = lexicalScope.outer;
+            }
             return new LamaExpressionListNode(Collections.emptyList());
         }
         lexicalScope.assns.add(exp);
         final LamaExpressionListNode list = new LamaExpressionListNode(lexicalScope.assns);
-        lexicalScope = lexicalScope.outer;
+        if (!expand) {
+            lexicalScope = lexicalScope.outer;
+        }
         return list;
     }
 
@@ -134,6 +136,8 @@ public class LamaNodeFactory {
             case LamaLanguageLexer.GT -> LamaGtNodeGen.create(left, right);
             case LamaLanguageLexer.LE -> LamaLeNodeGen.create(left, right);
             case LamaLanguageLexer.LT -> LamaLtNodeGen.create(left, right);
+            case LamaLanguageLexer.AND -> LamaAndNodeGen.create(left, right);
+            case LamaLanguageLexer.OR -> LamaOrNodeGen.create(left, right);
             default -> throw new UnsupportedOperationException("Create binary expression");
         };
     }
@@ -184,5 +188,26 @@ public class LamaNodeFactory {
 
     public LamaNode createCallExpression(String name, LamaNode function, List<LamaNode> parameters) {
         return new LamaFunctionCallNode(name, function, parameters);
+    }
+
+    public LamaNode createWhileExpression(LamaNode cond, LamaNode body) {
+        return new LamaWhileNode(cond, body);
+    }
+
+    public LamaNode createIfExpression(LamaNode cond, LamaNode body, LamaNode elsePart) {
+        return new LamaIfNode(cond, body, elsePart);
+    }
+
+    public LamaNode createDoWhileExpression(LamaNode cond, LamaNode body) {
+        return new LamaExpressionListNode(body, new LamaWhileNode(cond, body));
+    }
+
+    public LamaNode createSkipExpression() {
+        return new LamaSkipNode();
+    }
+
+    public LamaNode createForExpression(LamaNode before, LamaNode cond, LamaNode step, LamaNode body) {
+        lexicalScope = lexicalScope.outer;
+        return new LamaExpressionListNode(before, new LamaWhileNode(cond, new LamaExpressionListNode(body, step)));
     }
 }

@@ -13,6 +13,10 @@ public class LamaExpressionListNode extends LamaNode {
     @Children
     private final LamaNode[] expressions;
 
+    public LamaExpressionListNode(LamaNode... exprs) {
+        this.expressions = exprs;
+    }
+
     public LamaExpressionListNode(List<LamaNode> exprs) {
         this.expressions = exprs.toArray(new LamaNode[0]);
     }
@@ -22,7 +26,7 @@ public class LamaExpressionListNode extends LamaNode {
     @ExplodeLoop
     public Object executeGeneric(VirtualFrame frame) {
         if (expressions.length == 0) {
-            return LamaNull.SINGLETON;
+            return LamaNull.INSTANCE;
         }
         for (int i = 0; i < expressions.length - 1; ++i) {
             expressions[i].executeGeneric(frame);

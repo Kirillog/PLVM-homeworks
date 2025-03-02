@@ -9,9 +9,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 @SuppressWarnings("static-method")
 public final class LamaNull implements TruffleObject {
 
-    public static final LamaNull SINGLETON = new LamaNull();
-    private static final int IDENTITY_HASH = System.identityHashCode(SINGLETON);
-
+    public static final LamaNull INSTANCE = new LamaNull();
     private LamaNull() {
     }
 

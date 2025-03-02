@@ -11,7 +11,7 @@ public abstract class LamaWriteFunctionBodyNode extends LamaBuiltinFunctionBodyN
     @CompilerDirectives.TruffleBoundary
     public Object write(int argument) {
         LamaContext.get(this).getOutput().println(argument);
-        return LamaNull.SINGLETON;
+        return LamaNull.INSTANCE;
     }
 
 }

@@ -76,20 +76,33 @@ scopeExpression returns [LamaExpressionListNode result]
   }
 (definition)* { LamaExpressionListNode expr = null; }
     (expression { expr = $expression.result; }
-    )? { $result = factory.finishScope(expr); }
-;
+    )? { $result = factory.finishScope(expr, false); };
+
+expandedScopeExpression returns [LamaExpressionListNode result]
+: {
+    factory.startScope();
+  }
+(definition)* { LamaExpressionListNode expr = null; }
+    (expression { expr = $expression.result; }
+    )? { $result = factory.finishScope(expr, true); };
+
 definition
 :
-    variableDefinition;
-//    | functionDefinition;
+    variableDefinition
+    | functionDefinition;
+
 variableDefinition :
 'var' variableDefinitionItem (',' variableDefinitionItem)* ';';
+
 variableDefinitionItem :
- LIDENT ('=' binaryExpression)? { factory.addVariableDefinition($LIDENT, $binaryExpression.ctx != null ? $binaryExpression.result : null); }
-;
-//functionDefinition : 'fun' LIDENT '(' functionArguments ')' functionBody;
-//functionArguments : (LIDENT (',' LIDENT)*)?;
-//functionBody : '{' scopeExpression '}';
+LIDENT ('=' binaryExpression)? { factory.addVariableDefinition($LIDENT, $binaryExpression.ctx != null ? $binaryExpression.result : null); };
+
+functionDefinition :
+'fun' LIDENT '(' functionArguments ')' functionBody;
+
+functionArguments : (LIDENT (',' LIDENT)*)?;
+
+functionBody : '{' scopeExpression '}';
 
 expression returns [LamaExpressionListNode result]
 : { List<LamaNode> body = new ArrayList<>(); }
@@ -104,8 +117,8 @@ binaryExpression returns [LamaNode result]
     | l=binaryExpression op=(MUL|DIV|MOD) r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
     | l=binaryExpression op=(PLUS|MINUS) r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
     | l=binaryExpression op=(EQ|NE|LE|LT|GE|GT) r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
-//    | binaryOperand '&&' binaryOperand
-//    | binaryOperand '!!' binaryOperand
+    | l=binaryExpression op='&&' r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
+    | l=binaryExpression op='!!' r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
 //    | <assoc=right> binaryOperand ':' binaryOperand
     | <assoc=right> l=binaryExpression ':=' r=binaryExpression { $result = factory.createAssignment($l.result, $r.result); };
 binaryOperand returns [LamaNode result]:
@@ -123,30 +136,39 @@ primary returns [LamaNode result]:
     | LIDENT { $result = factory.createIdentifier($LIDENT); }
 //    | 'true'
 //    | 'false'
-//    | 'skip'
+    | 'skip' { $result = factory.createSkipExpression(); }
     | '(' scopeExpression ')' { $result = $scopeExpression.result; }
-;
 //    | listExpression
 //    | arrayExpression
 //    | sExpression
-//    | ifExpression
-//    | whileDoExpression
-//    | doWhileExpression
-//    | forExpression
-//    | caseExpression;
+    | ifExpression      { $result = $ifExpression.result; }
+    | whileDoExpression { $result = $whileDoExpression.result; }
+    | doWhileExpression { $result = $doWhileExpression.result; }
+    | forExpression     { $result = $forExpression.result; }
+//    | caseExpression
+;
 
 arrayExpression : '[' (expression (',' expression)*)? ']';
 listExpression : '{' (expression (',' expression)*)? '}';
 sExpression : UIDENT ('(' (expression (',' expression)*)? ')')?;
 
-ifExpression : 'if' expression 'then' scopeExpression (elsePart)? 'fi';
-elsePart :
-    'elif' expression 'then' scopeExpression (elsePart)?
-    | 'else' scopeExpression;
+ifExpression returns [LamaNode result]:
+'if' cond=expression 'then' body=scopeExpression (elsePart)?
+'fi' { $result = factory.createIfExpression($cond.result, $body.result, $elsePart.ctx == null ? null : $elsePart.result); }
+;
+elsePart returns [LamaNode result]:
+    'elif' cond=expression 'then' body=scopeExpression (elsePart)?
+    { $result = factory.createIfExpression($cond.result, $body.result, $elsePart.ctx == null ? null : $elsePart.result); }
+    | 'else' body=scopeExpression { $result = $body.result; }
+;
 
-whileDoExpression : 'while' expression 'do' scopeExpression 'od';
-doWhileExpression : 'do' scopeExpression 'while' expression 'od';
-forExpression : 'for' scopeExpression ',' expression ',' expression 'do' scopeExpression 'od';
+whileDoExpression returns [LamaNode result]:
+'while' cond=expression 'do' body=scopeExpression 'od' { $result = factory.createWhileExpression($cond.result, $body.result); };
+doWhileExpression returns [LamaNode result]:
+'do' body=scopeExpression 'while' cond=expression 'od' { $result = factory.createDoWhileExpression($cond.result, $body.result); };
+forExpression returns [LamaNode result]:
+'for' before=expandedScopeExpression ',' cond=expression ',' step=expression 'do' body=scopeExpression 'od'
+    { $result = factory.createForExpression($before.result, $cond.result, $step.result, $body.result); };
 
 pattern :
     DECIMAL
@@ -165,7 +187,7 @@ fragment STRING_CHAR : ~('"') | '"' '"';
 
 UIDENT : [A-Z][a-zA-Z_0-9]*;
 LIDENT : [a-z][a-zA-Z_0-9]*;
-DECIMAL : ('-')?[0-9]+;
+DECIMAL : [0-9]+;
 STRING : '"' STRING_CHAR* '"';
 CHAR : '\'' (~('\'') | '\'\'' | '\n' | '\t') '\'';
 

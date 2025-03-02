@@ -35,21 +35,21 @@ public class LamaLanguageTest {
     @Test
     void simpleVariableDefinitions() {
         Value result1 = context.eval("lama",
- """
+        """
             var a;
                 1
         """);
         assertEquals(1, result1.asInt());
 
         Value result2 = context.eval("lama",
- """
+        """
             var a, b = 2;
             b
         """);
         assertEquals(2, result2.asInt());
 
         Value result3 = context.eval("lama",
- """
+        """
             var a = 1, b = 2;
             b := a;
             b
@@ -57,7 +57,7 @@ public class LamaLanguageTest {
         assertEquals(1, result3.asInt());
 
         Value result4 = context.eval("lama",
- """
+        """
             var a = 1, b = 2;
             var c = a + b;
             c
@@ -68,7 +68,7 @@ public class LamaLanguageTest {
     @Test
     void simpleScopes() {
         Value result = context.eval("lama",
- """
+        """
             var a = 1;
             (
                 var a = 2;
@@ -81,7 +81,7 @@ public class LamaLanguageTest {
     @Test
     void nestedScopes() {
         Value result = context.eval("lama",
- """
+        """
             var a = 1;
             var b = 1;
             (
@@ -105,7 +105,7 @@ public class LamaLanguageTest {
         Engine engine = Engine.newBuilder().out(outputStream).build();
         Context context = Context.newBuilder().engine(engine).build();
         context.eval("lama",
- """
+        """
             var x = -6, y = 7, z;
             z := x < y;
             write (z);
@@ -132,12 +132,65 @@ public class LamaLanguageTest {
         Engine engine = Engine.newBuilder().in(inputStream).out(outputStream).build();
         Context context = Context.newBuilder().engine(engine).build();
         context.eval("lama",
- """
-        var a = read();
-        write(a)
+        """
+            var a = read();
+            write(a)
         """);
         assertArrayEquals(expected, outputStream.toByteArray());
     }
 
+    @Test
+    void whileDoExpression() {
+        Value result = context.eval("lama",
+        """
+            var n = 2, k = 10;
+                 
+            (var res = 1;
+            while k > 0 do
+                res := res * n;
+                k := k - 1
+            od;
+            res)
+        """);
+        assertEquals(1024, result.asInt() );
+    }
+
+    @Test
+    void doWhileExpression() {
+        Value result = context.eval("lama",
+    """
+            var n = 5, s = 0;
+            do
+              s := s + n;
+              n := n - 1
+            while n > 1 od;
+            s
+        """);
+        assertEquals(14, result.asInt());
+    }
+
+    @Test
+    void ifExpression() {
+        Value result = context.eval("lama",
+        """
+            var x = 0;
+            if x then 1 else 2 fi
+        """);
+        assertEquals(2, result.asInt());
+    }
+
+    @Test
+    void forExpression() {
+        Value result = context.eval("lama",
+        """
+            var s = 0;
+            for var j; j := 0, j < 100, j := j+1
+            do
+                s := s + j
+            od;
+            s
+        """);
+        assertEquals(499950, result.asInt());
+    }
 
 }
