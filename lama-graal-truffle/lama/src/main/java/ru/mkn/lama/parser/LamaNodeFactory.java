@@ -1,22 +1,28 @@
 package ru.mkn.lama.parser;
 
+import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.strings.TruffleString;
 import org.antlr.v4.runtime.Token;
 import ru.mkn.lama.LamaLanguage;
+import ru.mkn.lama.nodes.FunctionRootNode;
 import ru.mkn.lama.nodes.LamaNode;
 import ru.mkn.lama.nodes.LamaRootNode;
 import ru.mkn.lama.nodes.expr.LamaExpressionListNode;
 import ru.mkn.lama.nodes.expr.LamaIntLiteralNode;
 import ru.mkn.lama.nodes.expr.LamaStringLiteralNode;
 import ru.mkn.lama.nodes.expr.binary.*;
+import ru.mkn.lama.nodes.function.*;
 import ru.mkn.lama.nodes.vars.*;
 
 import ru.mkn.lama.parser.LamaLanguageLexer;
+import ru.mkn.lama.runtime.LamaFunctionObject;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.IntStream;
 
 
 public class LamaNodeFactory {
@@ -50,25 +56,31 @@ public class LamaNodeFactory {
                 return null;
             }
         }
-
-        void defineLocal(TruffleString name, Integer frameSlot, LamaNode expr) {
-            locals.put(name, frameSlot);
-            if (expr != null) {
-                assns.add(expr);
-            }
-        }
     }
 
     private LexicalScope lexicalScope;
-
     private FrameDescriptor.Builder frameBuilder;
     private HashMap<TruffleString, Integer> frameArguments;
-
     private LamaRootNode rootNode;
+
+    private final Map<TruffleString, LamaFunctionObject> builtins;
+
     public LamaNodeFactory(LamaLanguage language, Source source) {
         this.language = language;
         this.source = source;
         this.frameBuilder = FrameDescriptor.newBuilder();
+        this.builtins = new HashMap<>();
+        defineBuiltInFunction("write", LamaWriteFunctionBodyNodeFactory.getInstance());
+        defineBuiltInFunction("read", LamaReadFunctionBodyNodeFactory.getInstance());
+    }
+
+    private void defineBuiltInFunction(String name, NodeFactory<? extends LamaBuiltinFunctionBodyNode> nodeFactory) {
+        LamaReadArgumentNode[] functionArguments = IntStream.range(0, nodeFactory.getExecutionSignature().size())
+                .mapToObj(LamaReadArgumentNode::new)
+                .toArray(LamaReadArgumentNode[]::new);
+        var builtInFuncRootNode = new FunctionRootNode(language, nodeFactory.createNode((Object) functionArguments));
+        var functionObject = new LamaFunctionObject(builtInFuncRootNode.getCallTarget());
+        this.builtins.put(TruffleString.fromJavaStringUncached(name, TruffleString.Encoding.UTF_8), functionObject);
     }
 
     public LamaRootNode getRootNode() {
@@ -116,6 +128,12 @@ public class LamaNodeFactory {
             case LamaLanguageLexer.MUL -> LamaMulNodeGen.create(left, right);
             case LamaLanguageLexer.DIV -> LamaDivNodeGen.create(left, right);
             case LamaLanguageLexer.MOD -> LamaModNodeGen.create(left, right);
+            case LamaLanguageLexer.EQ -> LamaEqNodeGen.create(left, right);
+            case LamaLanguageLexer.NE -> LamaNeNodeGen.create(left, right);
+            case LamaLanguageLexer.GE -> LamaGeNodeGen.create(left, right);
+            case LamaLanguageLexer.GT -> LamaGtNodeGen.create(left, right);
+            case LamaLanguageLexer.LE -> LamaLeNodeGen.create(left, right);
+            case LamaLanguageLexer.LT -> LamaLtNodeGen.create(left, right);
             default -> throw new UnsupportedOperationException("Create binary expression");
         };
     }
@@ -156,10 +174,15 @@ public class LamaNodeFactory {
             result = LamaReadLocalVariableNodeGen.create(frame);
         } else if (frameArguments != null && frameArguments.containsKey(name)) {
             result = new LamaReadArgumentNode(frameArguments.get(name));
+        } else if (builtins.containsKey(name)){
+            result = new LamaFunctionWrapper(builtins.get(name));
         } else {
             throw new UnsupportedOperationException("Create identifier");
         }
         return result;
     }
 
+    public LamaNode createCallExpression(String name, LamaNode function, List<LamaNode> parameters) {
+        return new LamaFunctionCallNode(name, function, parameters);
+    }
 }

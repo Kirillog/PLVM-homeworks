@@ -2,6 +2,7 @@ package ru.mkn.lama.nodes;
 
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.nodes.RootNode;
 import ru.mkn.lama.LamaLanguage;
 
@@ -18,6 +19,7 @@ public final class LamaRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
+//        NodeUtil.printTree(System.out, this);
         return bodyNode.executeGeneric(frame);
     }
 }

@@ -27,10 +27,6 @@ public class LamaExpressionListNode extends LamaNode {
         for (int i = 0; i < expressions.length - 1; ++i) {
             expressions[i].executeGeneric(frame);
         }
-        Object ret = LamaNull.SINGLETON;
-        for (LamaNode expression : expressions) {
-            ret = expression.executeGeneric(frame);
-        }
-        return ret;
+        return expressions[expressions.length - 1].executeGeneric(frame);
     }
 }

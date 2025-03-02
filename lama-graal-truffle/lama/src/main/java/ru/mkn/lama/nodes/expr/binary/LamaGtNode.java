@@ -6,11 +6,11 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import ru.mkn.lama.LamaException;
 import ru.mkn.lama.nodes.expr.LamaBinaryExpression;
 
-@NodeInfo(shortName = "/")
-public abstract class LamaDivNode extends LamaBinaryExpression {
-    @Specialization(rewriteOn = ArithmeticException.class)
-    protected int div(int left, int right) throws ArithmeticException {
-        return Math.divideExact(left, right);
+@NodeInfo(shortName = ">")
+public abstract class LamaGtNode extends LamaBinaryExpression {
+    @Specialization
+    protected boolean gt(int left, int right) {
+        return left > right;
     }
 
     @Fallback

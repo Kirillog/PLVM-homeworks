@@ -36,7 +36,7 @@ public class LamaLanguage extends TruffleLanguage<LamaContext> {
 
     @Override
     protected LamaContext createContext(Env env) {
-        return new LamaContext(this);
+        return new LamaContext(this, env);
     }
 
     public static NodeInfo lookupNodeInfo(Class<?> clazz) {

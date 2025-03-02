@@ -1,11 +1,15 @@
 package ru.mkn.lama;
 
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Value;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
+import java.io.*;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class LamaLanguageTest {
@@ -91,6 +95,48 @@ public class LamaLanguageTest {
             a + b
         """);
         assertEquals(4, result.asInt());
+    }
+
+    @Test
+    void logicalCompare() {
+        var expected = new byte[]{'1','\n','1','\n','0','\n','1','\n','0','\n','0','\n'};
+
+        var outputStream = new ByteArrayOutputStream();
+        Engine engine = Engine.newBuilder().out(outputStream).build();
+        Context context = Context.newBuilder().engine(engine).build();
+        context.eval("lama",
+ """
+            var x = -6, y = 7, z;
+            z := x < y;
+            write (z);
+            z := x <= y;
+            write (z);
+            z := x == y;
+            write (z);
+            z := x != y;
+            write (z);
+            z := x >= y;
+            write (z);
+            z := x > y;
+            write (z)
+        """);
+        assertArrayEquals(expected, outputStream.toByteArray());
+    }
+
+    @Test
+    void readWriteBuiltin() {
+        var array = new byte[]{'1', '\n'};
+        var expected = new byte[]{'>', ' ', '1', '\n'};
+        var inputStream = new ByteArrayInputStream(array);
+        var outputStream = new ByteArrayOutputStream();
+        Engine engine = Engine.newBuilder().in(inputStream).out(outputStream).build();
+        Context context = Context.newBuilder().engine(engine).build();
+        context.eval("lama",
+ """
+        var a = read();
+        write(a)
+        """);
+        assertArrayEquals(expected, outputStream.toByteArray());
     }
 
 

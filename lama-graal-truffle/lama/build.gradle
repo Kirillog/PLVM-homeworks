@@ -1,9 +1,11 @@
+plugins {
+    id 'java'
+    id 'antlr'
+    id 'application'
+}
+
 group 'ru.mkn.lama'
 version '1.0'
-
-apply plugin: 'java'
-apply plugin: 'antlr'
-
 
 repositories {
     mavenCentral()
@@ -27,13 +29,17 @@ dependencies {
     antlr "org.antlr:antlr4:$antlr_version"
 }
 
-// These arguments are required because of the JVM 11's module system -
-// we grant this module access to the packages from the Truffle API JAR
+application {
+    mainClass = "ru.mkn.lama.LamaMain"
+}
+
 test {
     useJUnitPlatform()
 
     jvmArgs '-ea',
-            '-Dgraalvm.locatorDisabled=true'
+            '-Dgraalvm.locatorDisabled=true',
+            '-Dgraal.Dump=:1',
+            '-Dgraal.PrintGraph=Network'
 
     testLogging {
         events 'failed'

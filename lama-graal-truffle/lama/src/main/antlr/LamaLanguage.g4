@@ -103,19 +103,18 @@ binaryExpression returns [LamaNode result]
      binaryOperand {$result = $binaryOperand.result; }
     | l=binaryExpression op=(MUL|DIV|MOD) r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
     | l=binaryExpression op=(PLUS|MINUS) r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
-//    | binaryOperand '==' binaryOperand
-//    | binaryOperand '!=' binaryOperand
-//    | binaryOperand '<=' binaryOperand
-//    | binaryOperand '<' binaryOperand
-//    | binaryOperand '>=' binaryOperand
-//    | binaryOperand '>' binaryOperand
+    | l=binaryExpression op=(EQ|NE|LE|LT|GE|GT) r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
 //    | binaryOperand '&&' binaryOperand
 //    | binaryOperand '!!' binaryOperand
 //    | <assoc=right> binaryOperand ':' binaryOperand
     | <assoc=right> l=binaryExpression ':=' r=binaryExpression { $result = factory.createAssignment($l.result, $r.result); };
 binaryOperand returns [LamaNode result]:
-    primary { $result = $primary.result; };
-//    | binaryOperand '(' (expression (',' expression)*)? ')'
+    primary { $result = $primary.result; }
+    | name=binaryOperand
+     '(' { List<LamaNode> parameters = new ArrayList<>(); }
+     (expression { parameters.add($expression.result); }
+        (',' expression { parameters.add($expression.result); })*)?
+     ')' { $result = factory.createCallExpression($name.text, $name.result, parameters); };
 //    | binaryOperand '[' expression ']';
 primary returns [LamaNode result]:
     DECIMAL  { $result = factory.createIntLiteral($DECIMAL); }
@@ -182,7 +181,7 @@ OR: '!!';
 LT: '<';
 GT: '>';
 EQ: '==';
-NE: '/=';
+NE: '!=';
 LE: '<=';
 GE: '>=';
 
