@@ -12,6 +12,11 @@ public final class LamaRootNode extends RootNode {
     @Child
     private LamaNode bodyNode;
 
+    public LamaRootNode(LamaLanguage language, LamaNode bodyNode) {
+        super(language);
+        this.bodyNode = bodyNode;
+    }
+
     public LamaRootNode(LamaLanguage language, FrameDescriptor frameDescriptor, LamaNode bodyNode) {
         super(language, frameDescriptor);
         this.bodyNode = bodyNode;
@@ -19,7 +24,7 @@ public final class LamaRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-//        NodeUtil.printTree(System.out, this);
+        NodeUtil.printTree(System.out, this);
         return bodyNode.executeGeneric(frame);
     }
 }

@@ -98,11 +98,21 @@ variableDefinitionItem :
 LIDENT ('=' binaryExpression)? { factory.addVariableDefinition($LIDENT, $binaryExpression.ctx != null ? $binaryExpression.result : null); };
 
 functionDefinition :
-'fun' LIDENT '(' functionArguments ')' functionBody;
+'fun' name=LIDENT '(' args=functionArguments ')'
+ { factory.enterFunction($args.result); }
+ body=functionBody
+ { factory.leaveFunction($name, $body.result); };
 
-functionArguments : (LIDENT (',' LIDENT)*)?;
+functionArguments returns [List<Token> result]:
+{ List<Token> args = new ArrayList<>(); }
+(
+    LIDENT { args.add($LIDENT); }
+    (',' LIDENT { args.add($LIDENT); })*
+)?
+{ $result = args; };
 
-functionBody : '{' scopeExpression '}';
+functionBody returns [LamaNode result]:
+'{' scopeExpression '}' { $result = $scopeExpression.result; };
 
 expression returns [LamaExpressionListNode result]
 : { List<LamaNode> body = new ArrayList<>(); }
@@ -114,6 +124,7 @@ expression returns [LamaExpressionListNode result]
 binaryExpression returns [LamaNode result]
 :
      binaryOperand {$result = $binaryOperand.result; }
+    | op=MINUS e=binaryExpression {$result = factory.createUnaryExpression($op, $e.result); }
     | l=binaryExpression op=(MUL|DIV|MOD) r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
     | l=binaryExpression op=(PLUS|MINUS) r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
     | l=binaryExpression op=(EQ|NE|LE|LT|GE|GT) r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }

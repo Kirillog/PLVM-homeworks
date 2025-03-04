@@ -26,6 +26,7 @@ public final class LamaContext {
     private final BufferedReader input;
     private final PrintWriter output;
 
+    public final GlobalScope globalScope = new GlobalScope();
 
     private static final LamaLanguage.ContextReference<LamaContext> REF =
             TruffleLanguage.ContextReference.create(LamaLanguage.class);

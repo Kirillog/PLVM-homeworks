@@ -1,5 +1,6 @@
 package ru.mkn.lama.nodes;
 
+import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
 import ru.mkn.lama.LamaLanguage;
@@ -13,6 +14,11 @@ public final class FunctionRootNode extends RootNode {
                             LamaNode functionBodyExpr) {
         super(lamaLanguage);
         this.functionBodyExpr = functionBodyExpr;
+    }
+
+    public FunctionRootNode(LamaLanguage lamaLanguage, LamaNode body, FrameDescriptor frameDescriptor) {
+        super(lamaLanguage, frameDescriptor);
+        this.functionBodyExpr = body;
     }
 
     @Override

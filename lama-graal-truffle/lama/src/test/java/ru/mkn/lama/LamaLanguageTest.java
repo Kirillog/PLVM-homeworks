@@ -98,6 +98,17 @@ public class LamaLanguageTest {
     }
 
     @Test
+    void unaryMinus() {
+        Value result = context.eval("lama",
+        """
+            var a = -1;
+            a := a-1;
+            a
+        """);
+        assertEquals(-2, result.asInt());
+    }
+
+    @Test
     void logicalCompare() {
         var expected = new byte[]{'1','\n','1','\n','0','\n','1','\n','0','\n','0','\n'};
 
@@ -190,7 +201,22 @@ public class LamaLanguageTest {
             od;
             s
         """);
-        assertEquals(499950, result.asInt());
+        assertEquals(4950, result.asInt());
+    }
+
+    @Test
+    void functionDefinition() {
+        Value result = context.eval("lama",
+        """
+            var x, a = 5, b = 6;
+            fun test1 (b) {
+                a := b
+            }
+            x := 10;
+            test1 (x);
+            a
+        """);
+        assertEquals(10, result.asInt());
     }
 
 }
