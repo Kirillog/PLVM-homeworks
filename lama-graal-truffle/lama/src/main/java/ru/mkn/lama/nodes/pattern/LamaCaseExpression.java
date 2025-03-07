@@ -2,6 +2,8 @@ package ru.mkn.lama.nodes.pattern;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import ru.mkn.lama.nodes.LamaNode;
+import ru.mkn.lama.runtime.LamaArrayObject;
+import ru.mkn.lama.runtime.LamaFunctionObject;
 import ru.mkn.lama.runtime.LamaNull;
 import ru.mkn.lama.runtime.LamaSExpObject;
 
@@ -36,6 +38,15 @@ public class LamaCaseExpression extends LamaNode {
                 return true;
             }
             return matches(object, pn.pattern());
+        } else if (p instanceof LamaPattern.ConsPattern cp && object instanceof LamaArrayObject a) {
+            if (a.length() != 2) {
+                return false;
+            }
+            return matches(a.get(0), cp.h()) && matches(a.get(1), cp.t());
+        } else if (p instanceof LamaPattern.ListPattern && object instanceof LamaArrayObject a) {
+            return a.length() == 0;
+        } else if (p instanceof LamaPattern.FuncTypePattern && object instanceof LamaFunctionObject) {
+            return true;
         } else {
             return false;
         }

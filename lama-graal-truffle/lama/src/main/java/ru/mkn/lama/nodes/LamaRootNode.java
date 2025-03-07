@@ -24,7 +24,7 @@ public final class LamaRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-//        NodeUtil.printTree(System.out, this);
+        NodeUtil.printTree(System.out, this);
         return bodyNode.executeGeneric(frame);
     }
 }

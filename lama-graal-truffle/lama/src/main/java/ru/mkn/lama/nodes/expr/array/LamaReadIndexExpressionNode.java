@@ -8,6 +8,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import ru.mkn.lama.LamaException;
 import ru.mkn.lama.nodes.LamaNode;
+import ru.mkn.lama.runtime.LamaArrayObject;
 import ru.mkn.lama.runtime.LamaSExpObject;
 import ru.mkn.lama.runtime.LamaStringObject;
 
@@ -18,14 +19,9 @@ public abstract class LamaReadIndexExpressionNode extends LamaNode {
     public abstract LamaNode getObj();
     public abstract LamaNode getIndex();
 
-    @Specialization(guards = "arrayInteropLibrary.isArrayElementReadable(obj, index)", limit = "2")
-    protected Object readIntIndexOfArray(Object obj, int index,
-                                         @CachedLibrary("obj") InteropLibrary arrayInteropLibrary) {
-        try {
-            return arrayInteropLibrary.readArrayElement(obj, index);
-        } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-            throw new LamaException(this, e.getMessage());
-        }
+    @Specialization
+    protected Object readIntIndexOfArray(LamaArrayObject obj, int index) {
+        return obj.get(index);
     }
 
     @Specialization

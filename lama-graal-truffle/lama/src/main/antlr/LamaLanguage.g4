@@ -131,7 +131,7 @@ binaryExpression returns [LamaNode result]
     | l=binaryExpression op=(EQ|NE|LE|LT|GE|GT) r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
     | l=binaryExpression op='&&' r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
     | l=binaryExpression op='!!' r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
-//    | <assoc=right> binaryOperand ':' binaryOperand
+    | <assoc=right> l=binaryExpression op=COLON r=binaryExpression { $result = factory.createBinaryExpression($op, $l.result, $r.result); }
     | <assoc=right> l=binaryExpression ':=' r=binaryExpression { $result = factory.createAssignment($l.result, $r.result); };
 binaryOperand returns [LamaNode result]:
     primary { $result = $primary.result; }
@@ -153,7 +153,7 @@ primary returns [LamaNode result]:
 //    | 'false'
     | 'skip' { $result = factory.createSkipExpression(); }
     | '(' scopeExpression ')' { $result = $scopeExpression.result; }
-//    | listExpression
+    | listExpression    { $result = $listExpression.result; }
     | arrayExpression   { $result = $arrayExpression.result; }
     | sExpression       { $result = $sExpression.result; }
     | ifExpression      { $result = $ifExpression.result; }
@@ -161,6 +161,7 @@ primary returns [LamaNode result]:
     | doWhileExpression { $result = $doWhileExpression.result; }
     | forExpression     { $result = $forExpression.result; }
     | caseExpression    { $result = $caseExpression.result; }
+    | funExpression     { $result = $funExpression.result; }
 ;
 
 arrayExpression returns [LamaNode result]:
@@ -168,7 +169,11 @@ arrayExpression returns [LamaNode result]:
     (expression { array.add($expression.result); }
         (',' expression { array.add($expression.result); })*)?
 ']' { $result = factory.createArrayLiteralExpression(array); };
-listExpression : '{' (expression (',' expression)*)? '}';
+listExpression returns [LamaNode result]:
+ '{' { List<LamaNode> array = new ArrayList<>(); }
+     (expression { array.add($expression.result); }
+         (',' expression { array.add($expression.result); })*)?
+ '}' { $result = factory.createListLiteralExpression(array); };
 sExpression returns [LamaNode result]:
  { List<LamaNode> array = new ArrayList<>(); }
  name=UIDENT
@@ -195,6 +200,11 @@ forExpression returns [LamaNode result]:
     { $result = factory.createForExpression($before.result, $cond.result, $step.result, $body.result); };
 
 pattern returns [LamaPattern result]:
+    simplePattern COLON pattern { $result = factory.createConsPattern($simplePattern.result, $pattern.result); }
+    | simplePattern { $result = $simplePattern.result; }
+;
+
+simplePattern returns [LamaPattern result]:
     DECIMAL { $result = factory.createDecimalPattern($DECIMAL); }
     | '_' { $result = factory.createWildcardPattern(); }
 //    | '[' (pattern (',' pattern)*)? ']'
@@ -203,6 +213,9 @@ pattern returns [LamaPattern result]:
         (',' pattern { patterns.add($pattern.result); } )*)?
     ')')? { $result = factory.createSExpPattern($UIDENT, patterns); }
     | LIDENT  ('@' pattern)? { $result = factory.createNamedPattern($LIDENT, $pattern.ctx == null ? null : $pattern.result); }
+    | '{' '}' { $result = factory.createListPattern(); }
+    | op=PAT_FUN { $result = factory.createFuncTypePattern(); }
+    | '(' pattern ')' { $result = $pattern.result; }
 ;
 
 caseExpression returns [LamaNode result]:
@@ -220,6 +233,12 @@ caseBranch [LamaNode scr] returns [LamaCase result]:
  pattern '->'
  { factory.startScopeWithNames(scr, $pattern.result); }
     scopeExpression { $result = factory.createCaseBranch($pattern.result, $scopeExpression.result); };
+
+funExpression returns [LamaNode result]:
+'fun' '(' args=functionArguments ')'
+ { factory.enterFunction($args.result); }
+ body=functionBody
+ { $result = factory.leaveClosure($body.result); };
 
 // Lexer
 
@@ -246,6 +265,9 @@ EQ: '==';
 NE: '!=';
 LE: '<=';
 GE: '>=';
+COLON: ':';
+
+PAT_FUN: '#fun';
 
 WS : [ \t\r\n]+ -> skip;
 COMMENT : '(*' .*? '*)' -> skip;

@@ -19,6 +19,17 @@ public interface LamaPattern {
 
     }
 
+    record ListPattern() implements LamaPattern {
+
+    }
+
+    record ConsPattern(LamaPattern h, LamaPattern t) implements LamaPattern {
+
+    }
+
+    record FuncTypePattern() implements LamaPattern {
+
+    }
 }
 
 

@@ -11,7 +11,7 @@ public abstract class LamaLengthFunctionBodyNode extends LamaBuiltinFunctionBody
 
     @Specialization
     public int length(LamaArrayObject obj) {
-        return obj.getArraySize();
+        return obj.length();
     }
 
     @Specialization

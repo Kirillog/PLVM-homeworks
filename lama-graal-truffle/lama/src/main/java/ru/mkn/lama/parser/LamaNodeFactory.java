@@ -16,10 +16,7 @@ import ru.mkn.lama.nodes.expr.array.LamaReadIndexExpressionNode;
 import ru.mkn.lama.nodes.expr.array.LamaReadIndexExpressionNodeGen;
 import ru.mkn.lama.nodes.expr.array.LamaWriteIndexExpressionNodeGen;
 import ru.mkn.lama.nodes.expr.binary.*;
-import ru.mkn.lama.nodes.expr.literal.LamaArrayLiteralNode;
-import ru.mkn.lama.nodes.expr.literal.LamaIntLiteralNode;
-import ru.mkn.lama.nodes.expr.literal.LamaSExpLiteralNode;
-import ru.mkn.lama.nodes.expr.literal.LamaStringLiteralNode;
+import ru.mkn.lama.nodes.expr.literal.*;
 import ru.mkn.lama.nodes.expr.unary.LamaNegateNodeGen;
 import ru.mkn.lama.nodes.function.*;
 import ru.mkn.lama.nodes.pattern.LamaCase;
@@ -27,6 +24,7 @@ import ru.mkn.lama.nodes.pattern.LamaCaseExpression;
 import ru.mkn.lama.nodes.pattern.LamaPattern;
 import ru.mkn.lama.nodes.vars.*;
 
+import ru.mkn.lama.runtime.LamaArrayObject;
 import ru.mkn.lama.runtime.LamaFunctionObject;
 import ru.mkn.lama.parser.LamaLanguageLexer;
 
@@ -209,6 +207,7 @@ public class LamaNodeFactory {
             case LamaLanguageLexer.LT -> LamaLtNodeGen.create(left, right);
             case LamaLanguageLexer.AND -> LamaAndNodeGen.create(left, right);
             case LamaLanguageLexer.OR -> LamaOrNodeGen.create(left, right);
+            case LamaLanguageLexer.COLON -> LamaConsNodeGen.create(left, right);
             default -> throw new UnsupportedOperationException("Create binary expression");
         };
     }
@@ -321,6 +320,16 @@ public class LamaNodeFactory {
         addVariableDefinition(ident, new LamaFunctionWrapper(obj));
     }
 
+    public LamaNode leaveClosure(LamaNode body) {
+        FrameDescriptor desc = frames.frameBuilder.build();
+        frames = frames.outer;
+        var root = new FunctionRootNode(language, body, desc);
+//        NodeUtil.printTree(System.out, root);
+        var obj = new LamaFunctionObject(root.getCallTarget());
+        lexicalScope = lexicalScope.outer;
+        return new LamaFunctionWrapper(obj);
+    }
+
     public LamaNode createArrayLiteralExpression(List<LamaNode> elements) {
         return new LamaArrayLiteralNode(elements);
     }
@@ -349,6 +358,18 @@ public class LamaNodeFactory {
         return new LamaPattern.NamedPattern(asTruffleString(ident, false), pattern);
     }
 
+    public LamaPattern createConsPattern(LamaPattern h, LamaPattern t) {
+        return new LamaPattern.ConsPattern(h, t);
+    }
+
+    public LamaPattern createListPattern() {
+        return new LamaPattern.ListPattern();
+    }
+
+    public LamaPattern createFuncTypePattern() {
+        return new LamaPattern.FuncTypePattern();
+    }
+
     void traversePatterns(LamaNode scr, LamaPattern pattern) {
         if (pattern instanceof LamaPattern.SExpPattern s) {
             for (int i = 0; i < s.elems().length; ++i) {
@@ -357,6 +378,9 @@ public class LamaNodeFactory {
         } else if (pattern instanceof LamaPattern.NamedPattern n) {
             addVariableDefinition(n.name(), scr);
             traversePatterns(scr, n.pattern());
+        } else if (pattern instanceof LamaPattern.ConsPattern cp) {
+            traversePatterns(createIndexExpression(scr, new LamaIntLiteralNode(0)), cp.h());
+            traversePatterns(createIndexExpression(scr, new LamaIntLiteralNode(1)), cp.t());
         }
     }
 
@@ -371,5 +395,16 @@ public class LamaNodeFactory {
 
     public LamaCaseExpression createCaseExpression(LamaNode scrutinee, List<LamaCase> cases) {
         return new LamaCaseExpression(scrutinee, cases.toArray(new LamaCase[]{}));
+    }
+
+    public LamaNode createList(List<LamaNode> els, int from) {
+        if (from == els.size()) {
+            return new LamaListLiteralNode();
+        }
+        return new LamaListLiteralNode(els.get(from), createList(els, from + 1));
+    }
+
+    public LamaNode createListLiteralExpression(List<LamaNode> els) {
+        return createList(els, 0);
     }
 }
