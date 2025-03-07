@@ -17,13 +17,14 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.stream.IntStream;
 
 public final class LamaContext {
     private final LamaLanguage language;
     @CompilerDirectives.CompilationFinal
     private TruffleLanguage.Env env;
-    private final BufferedReader input;
+    private final Scanner input;
     private final PrintWriter output;
 
     public final GlobalScope globalScope = new GlobalScope();
@@ -38,7 +39,7 @@ public final class LamaContext {
     public LamaContext(LamaLanguage language, TruffleLanguage.Env env) {
         this.language = language;
         this.env = env;
-        this.input = new BufferedReader(new InputStreamReader(env.in()));
+        this.input = new Scanner(env.in());
         this.output = new PrintWriter(env.out(), true);
     }
 
@@ -46,7 +47,7 @@ public final class LamaContext {
         return this.output;
     }
 
-    public BufferedReader getInput() {
+    public Scanner getInput() {
         return this.input;
     }
 

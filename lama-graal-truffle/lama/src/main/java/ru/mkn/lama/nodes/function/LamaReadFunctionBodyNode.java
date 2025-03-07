@@ -14,21 +14,11 @@ import java.io.PrintWriter;
 
 public abstract class LamaReadFunctionBodyNode extends LamaBuiltinFunctionBodyNode {
 
-
+    @CompilerDirectives.TruffleBoundary
     @Specialization
     public int read() {
-        return doRead(LamaContext.get(this).getInput(), LamaContext.get(this).getOutput());
-    }
-
-    @CompilerDirectives.TruffleBoundary
-    private int doRead(BufferedReader in, PrintWriter out) {
-        try {
-            out.print("> ");
-            out.flush();
-            var value = Integer.parseInt(in.readLine());
-            return value;
-        } catch (IOException ex) {
-            throw new LamaException(this, ex.getMessage());
-        }
+        var context = LamaContext.get(this);
+        context.getOutput().print("> ");
+        return context.getInput().nextInt();
     }
 }

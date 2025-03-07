@@ -11,6 +11,7 @@ import ru.mkn.lama.nodes.LamaRootNode;
 import ru.mkn.lama.nodes.expr.LamaExpressionListNode;
 import ru.mkn.lama.parser.LamaNodeFactory;
 import ru.mkn.lama.parser.LamaParseError;
+import ru.mkn.lama.nodes.pattern.*;
 }
 
 @lexer::header
@@ -138,40 +139,52 @@ binaryOperand returns [LamaNode result]:
      '(' { List<LamaNode> parameters = new ArrayList<>(); }
      (expression { parameters.add($expression.result); }
         (',' expression { parameters.add($expression.result); })*)?
-     ')' { $result = factory.createCallExpression($name.text, $name.result, parameters); };
-//    | binaryOperand '[' expression ']';
+     ')' { $result = factory.createCallExpression($name.text, $name.result, parameters); }
+    | arg0=binaryOperand
+      '.' name=binaryOperand { $result = factory.createCallExpression($name.text, $name.result, List.of($arg0.result)); }
+    | arg0=binaryOperand '[' ind=expression ']' { $result = factory.createIndexExpression($arg0.result, $ind.result); }
+;
 primary returns [LamaNode result]:
     DECIMAL  { $result = factory.createIntLiteral($DECIMAL); }
     | STRING { $result = factory.createStringLiteral($STRING); }
-//    | CHAR
+    | CHAR   { $result = factory.createCharLiteral($CHAR); }
     | LIDENT { $result = factory.createIdentifier($LIDENT); }
 //    | 'true'
 //    | 'false'
     | 'skip' { $result = factory.createSkipExpression(); }
     | '(' scopeExpression ')' { $result = $scopeExpression.result; }
 //    | listExpression
-//    | arrayExpression
-//    | sExpression
+    | arrayExpression   { $result = $arrayExpression.result; }
+    | sExpression       { $result = $sExpression.result; }
     | ifExpression      { $result = $ifExpression.result; }
     | whileDoExpression { $result = $whileDoExpression.result; }
     | doWhileExpression { $result = $doWhileExpression.result; }
     | forExpression     { $result = $forExpression.result; }
-//    | caseExpression
+    | caseExpression    { $result = $caseExpression.result; }
 ;
 
-arrayExpression : '[' (expression (',' expression)*)? ']';
+arrayExpression returns [LamaNode result]:
+'[' { List<LamaNode> array = new ArrayList<>(); }
+    (expression { array.add($expression.result); }
+        (',' expression { array.add($expression.result); })*)?
+']' { $result = factory.createArrayLiteralExpression(array); };
 listExpression : '{' (expression (',' expression)*)? '}';
-sExpression : UIDENT ('(' (expression (',' expression)*)? ')')?;
+sExpression returns [LamaNode result]:
+ { List<LamaNode> array = new ArrayList<>(); }
+ name=UIDENT
+   ('(' (expression { array.add($expression.result); }
+     (',' expression { array.add($expression.result); })*)?
+   ')')?
+ { $result = factory.createSExpression($name, array); }
+;
 
 ifExpression returns [LamaNode result]:
 'if' cond=expression 'then' body=scopeExpression (elsePart)?
-'fi' { $result = factory.createIfExpression($cond.result, $body.result, $elsePart.ctx == null ? null : $elsePart.result); }
-;
+'fi' { $result = factory.createIfExpression($cond.result, $body.result, $elsePart.ctx == null ? null : $elsePart.result); };
 elsePart returns [LamaNode result]:
     'elif' cond=expression 'then' body=scopeExpression (elsePart)?
     { $result = factory.createIfExpression($cond.result, $body.result, $elsePart.ctx == null ? null : $elsePart.result); }
-    | 'else' body=scopeExpression { $result = $body.result; }
-;
+    | 'else' body=scopeExpression { $result = $body.result; };
 
 whileDoExpression returns [LamaNode result]:
 'while' cond=expression 'do' body=scopeExpression 'od' { $result = factory.createWhileExpression($cond.result, $body.result); };
@@ -181,16 +194,32 @@ forExpression returns [LamaNode result]:
 'for' before=expandedScopeExpression ',' cond=expression ',' step=expression 'do' body=scopeExpression 'od'
     { $result = factory.createForExpression($before.result, $cond.result, $step.result, $body.result); };
 
-pattern :
-    DECIMAL
-    | '_'
-    | '[' (pattern (',' pattern)*)? ']'
-    | UIDENT '(' (pattern (',' pattern)*)? ')'
-    | LIDENT ('@' pattern)?;
+pattern returns [LamaPattern result]:
+    DECIMAL { $result = factory.createDecimalPattern($DECIMAL); }
+    | '_' { $result = factory.createWildcardPattern(); }
+//    | '[' (pattern (',' pattern)*)? ']'
+    | UIDENT { List<LamaPattern> patterns = new ArrayList<>(); }
+    ('(' (pattern { patterns.add($pattern.result); }
+        (',' pattern { patterns.add($pattern.result); } )*)?
+    ')')? { $result = factory.createSExpPattern($UIDENT, patterns); }
+    | LIDENT  ('@' pattern)? { $result = factory.createNamedPattern($LIDENT, $pattern.ctx == null ? null : $pattern.result); }
+;
 
-caseExpression : 'case' expression 'of' caseBranches 'esac';
-caseBranches : caseBranch ('|' caseBranch)*;
-caseBranch : pattern '->' scopeExpression;
+caseExpression returns [LamaNode result]:
+'case' scrutinee=expression { LamaNode scr = factory.addFreshVariableDefinition($scrutinee.result); }
+ 'of' branches=caseBranches[scr] 'esac'
+    { $result = factory.createCaseExpression(scr, $branches.result); }
+;
+caseBranches [LamaNode scr] returns [List<LamaCase> result]:
+ { List<LamaCase> cases = new ArrayList<>(); }
+ caseBranch[scr] { cases.add($caseBranch.result); }
+    ('|' caseBranch[scr] { cases.add($caseBranch.result); })*
+    { $result = cases; }
+;
+caseBranch [LamaNode scr] returns [LamaCase result]:
+ pattern '->'
+ { factory.startScopeWithNames(scr, $pattern.result); }
+    scopeExpression { $result = factory.createCaseBranch($pattern.result, $scopeExpression.result); };
 
 // Lexer
 

@@ -3,26 +3,32 @@ package ru.mkn.lama.parser;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
-import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.strings.TruffleString;
+import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
 import ru.mkn.lama.LamaLanguage;
 import ru.mkn.lama.nodes.FunctionRootNode;
 import ru.mkn.lama.nodes.LamaNode;
 import ru.mkn.lama.nodes.LamaRootNode;
 import ru.mkn.lama.nodes.expr.*;
+import ru.mkn.lama.nodes.expr.array.LamaReadIndexExpressionNode;
+import ru.mkn.lama.nodes.expr.array.LamaReadIndexExpressionNodeGen;
+import ru.mkn.lama.nodes.expr.array.LamaWriteIndexExpressionNodeGen;
 import ru.mkn.lama.nodes.expr.binary.*;
+import ru.mkn.lama.nodes.expr.literal.LamaArrayLiteralNode;
 import ru.mkn.lama.nodes.expr.literal.LamaIntLiteralNode;
+import ru.mkn.lama.nodes.expr.literal.LamaSExpLiteralNode;
 import ru.mkn.lama.nodes.expr.literal.LamaStringLiteralNode;
 import ru.mkn.lama.nodes.expr.unary.LamaNegateNodeGen;
 import ru.mkn.lama.nodes.function.*;
+import ru.mkn.lama.nodes.pattern.LamaCase;
+import ru.mkn.lama.nodes.pattern.LamaCaseExpression;
+import ru.mkn.lama.nodes.pattern.LamaPattern;
 import ru.mkn.lama.nodes.vars.*;
 
-import ru.mkn.lama.parser.def.LamaDefinitionItem;
-import ru.mkn.lama.parser.def.LamaFunctionDefinitionItem;
-import ru.mkn.lama.parser.def.LamaVariableDefinitionItem;
 import ru.mkn.lama.runtime.LamaFunctionObject;
+import ru.mkn.lama.parser.LamaLanguageLexer;
 
 import java.util.*;
 import java.util.stream.IntStream;
@@ -113,6 +119,8 @@ public class LamaNodeFactory {
         this.builtins = new HashMap<>();
         defineBuiltInFunction("write", LamaWriteFunctionBodyNodeFactory.getInstance());
         defineBuiltInFunction("read", LamaReadFunctionBodyNodeFactory.getInstance());
+        defineBuiltInFunction("length", LamaLengthFunctionBodyNodeFactory.getInstance());
+        defineBuiltInFunction("string", LamaStringFunctionBodyNodeFactory.getInstance());
     }
 
     private void defineBuiltInFunction(String name, NodeFactory<? extends LamaBuiltinFunctionBodyNode> nodeFactory) {
@@ -137,14 +145,10 @@ public class LamaNodeFactory {
         lexicalScope = new LexicalScope(lexicalScope);
     }
 
-    public LamaExpressionListNode finishScope(LamaExpressionListNode exp, boolean expand) {
-        if (exp == null) {
-            if (!expand) {
-                lexicalScope = lexicalScope.outer;
-            }
-            return new LamaExpressionListNode(Collections.emptyList());
+    public LamaExpressionListNode finishScope(LamaNode exp, boolean expand) {
+        if (exp != null) {
+            lexicalScope.assns.add(exp);
         }
-        lexicalScope.assns.add(exp);
         final LamaExpressionListNode list = new LamaExpressionListNode(lexicalScope.assns);
         if (!expand) {
             lexicalScope = lexicalScope.outer;
@@ -152,8 +156,7 @@ public class LamaNodeFactory {
         return list;
     }
 
-    public void addVariableDefinition(Token ident, LamaNode valueNode) {
-        TruffleString name = asTruffleString(ident, false);
+    void addVariableDefinition(TruffleString name, LamaNode valueNode) {
         if (lexicalScope.outer == null) {
             lexicalScope.locals.put(name, new GlobalIdentifier(name));
             if (valueNode != null) {
@@ -170,6 +173,15 @@ public class LamaNodeFactory {
         }
     }
 
+    public void addVariableDefinition(Token ident, LamaNode valueNode) {
+        addVariableDefinition(asTruffleString(ident, false), valueNode);
+    }
+
+    public LamaNode addFreshVariableDefinition(LamaNode node) {
+        var name = TruffleString.fromJavaStringUncached("$" + java.util.UUID.randomUUID(), TruffleString.Encoding.UTF_8);
+        addVariableDefinition(name, node);
+        return createIdentifier(name);
+    }
 
     public LamaExpressionListNode createExpression(List<LamaNode> exprs) {
         return new LamaExpressionListNode(exprs);
@@ -206,6 +218,8 @@ public class LamaNodeFactory {
             return LamaWriteLocalVariableNodeGen.create(value, readLocal.getSlot());
         } else if (ref instanceof LamaReadGlobalVariableNode readGlobal) {
             return LamaWriteGlobalVariableNodeGen.create(value, readGlobal.getName());
+        } else if (ref instanceof LamaReadIndexExpressionNode readIndex) {
+            return LamaWriteIndexExpressionNodeGen.create(readIndex.getObj(), readIndex.getIndex(), value);
         } else {
             throw new UnsupportedOperationException("Create assignment");
         }
@@ -215,8 +229,13 @@ public class LamaNodeFactory {
         return new LamaIntLiteralNode(Integer.parseInt(constant.getText()));
     }
 
+    public LamaNode createCharLiteral(Token constant) {
+        return new LamaIntLiteralNode(constant.getText().charAt(1));
+    }
+
     public LamaNode createStringLiteral(Token constant) {
-        return new LamaStringLiteralNode(asTruffleString(constant, true));
+        var str = constant.getText();
+        return new LamaStringLiteralNode(str.substring(1, str.length() - 1));
     }
 
     private static TruffleString asTruffleString(Token literalToken, boolean removeQuotes) {
@@ -232,7 +251,10 @@ public class LamaNodeFactory {
     }
 
     public LamaNode createIdentifier(Token ident) {
-        TruffleString name = asTruffleString(ident, false);
+        return createIdentifier(asTruffleString(ident, false));
+    }
+
+    LamaNode createIdentifier(TruffleString name) {
         final Identifier scopedIdent = lexicalScope.find(name);
         final LamaNode result;
         if (scopedIdent != null) {
@@ -293,9 +315,61 @@ public class LamaNodeFactory {
         FrameDescriptor desc = frames.frameBuilder.build();
         frames = frames.outer;
         var root = new FunctionRootNode(language, body, desc);
-        NodeUtil.printTree(System.out, root);
+//        NodeUtil.printTree(System.out, root);
         var obj = new LamaFunctionObject(root.getCallTarget());
         lexicalScope = lexicalScope.outer;
         addVariableDefinition(ident, new LamaFunctionWrapper(obj));
+    }
+
+    public LamaNode createArrayLiteralExpression(List<LamaNode> elements) {
+        return new LamaArrayLiteralNode(elements);
+    }
+
+    public LamaNode createIndexExpression(LamaNode obj, LamaNode index) {
+        return LamaReadIndexExpressionNodeGen.create(obj, index);
+    }
+
+    public LamaNode createSExpression(Token ident, List<LamaNode> elements) {
+        return new LamaSExpLiteralNode(asTruffleString(ident, false), elements);
+    }
+
+    public LamaPattern createDecimalPattern(Token decimal) {
+        return new LamaPattern.Decimal(Integer.parseInt(decimal.getText()));
+    }
+
+    public LamaPattern createWildcardPattern() {
+        return new LamaPattern.Wildcard();
+    }
+
+    public LamaPattern createSExpPattern(Token ident, List<LamaPattern> patterns) {
+        return new LamaPattern.SExpPattern(asTruffleString(ident, false), patterns.toArray(new LamaPattern[]{}));
+    }
+
+    public LamaPattern createNamedPattern(Token ident, LamaPattern pattern) {
+        return new LamaPattern.NamedPattern(asTruffleString(ident, false), pattern);
+    }
+
+    void traversePatterns(LamaNode scr, LamaPattern pattern) {
+        if (pattern instanceof LamaPattern.SExpPattern s) {
+            for (int i = 0; i < s.elems().length; ++i) {
+                traversePatterns(createIndexExpression(scr, new LamaIntLiteralNode(i)), s.elems()[i]); //TODO(kmitkin): create specialized index node
+            }
+        } else if (pattern instanceof LamaPattern.NamedPattern n) {
+            addVariableDefinition(n.name(), scr);
+            traversePatterns(scr, n.pattern());
+        }
+    }
+
+    public void startScopeWithNames(LamaNode scr, LamaPattern pattern) {
+        startScope();
+        traversePatterns(scr, pattern);
+    }
+
+    public LamaCase createCaseBranch(LamaPattern pattern, LamaNode body) {
+        return new LamaCase(pattern, finishScope(null, false), body);
+    }
+
+    public LamaCaseExpression createCaseExpression(LamaNode scrutinee, List<LamaCase> cases) {
+        return new LamaCaseExpression(scrutinee, cases.toArray(new LamaCase[]{}));
     }
 }

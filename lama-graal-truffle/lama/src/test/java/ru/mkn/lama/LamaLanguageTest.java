@@ -8,6 +8,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.io.*;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -219,4 +220,38 @@ public class LamaLanguageTest {
         assertEquals(10, result.asInt());
     }
 
+    @Test
+    void lengthBuiltin() {
+        Value result = context.eval("lama",
+                """
+                    var x = "abcd";
+                    x.length
+                """);
+        assertEquals(4, result.asInt());
+    }
+
+    @Test
+    void patternMatching() {
+        var expected = new byte[]{'1','\n','2','\n','3','\n','4','\n'};
+
+        var outputStream = new ByteArrayOutputStream();
+        Engine engine = Engine.newBuilder().out(outputStream).build();
+        Context context = Context.newBuilder().engine(engine).build();
+        context.eval("lama",
+        """
+            fun f (x) {
+                case x of
+                  A -> write (1)
+                | B -> write (2)
+                | C -> write (3)
+                | _  -> write (4)
+                esac
+            }
+            f (A);
+            f (B);
+            f (C);
+            f (D)
+        """);
+        assertArrayEquals(expected, outputStream.toByteArray());
+    }
 }
