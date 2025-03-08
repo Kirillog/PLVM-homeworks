@@ -1,0 +1,4 @@
+*.o
+byterun
+disasm
+verifier
