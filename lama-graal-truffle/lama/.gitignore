@@ -2,3 +2,4 @@ build
 .idea
 target
 .gradle
+regression/*.log

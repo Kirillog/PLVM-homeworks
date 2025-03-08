@@ -2,7 +2,9 @@ plugins {
     id 'java'
     id 'antlr'
     id 'application'
+    id 'org.graalvm.buildtools.native' version '0.10.5'
 }
+
 
 group 'ru.mkn.lama'
 version '1.0'
@@ -32,6 +34,18 @@ dependencies {
 application {
     applicationDefaultJvmArgs = ['-Xss8m']
     mainClass = "ru.mkn.lama.LamaMain"
+}
+
+graalvmNative {
+    binaries.all {
+        buildArgs.add('--initialize-at-build-time=ru.mkn.lama,org.antlr.v4')
+        buildArgs.add('-H:+AllowDeprecatedBuilderClassesOnImageClasspath')
+    }
+    binaries.main {
+        imageName = 'lama'
+        mainClass = 'ru.mkn.lama.LamaMain'
+        buildArgs.add('-O2') // enables additional compiler optimizations
+    }
 }
 
 test {
