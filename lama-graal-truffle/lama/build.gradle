@@ -30,6 +30,7 @@ dependencies {
 }
 
 application {
+    applicationDefaultJvmArgs = ['-Xss8m']
     mainClass = "ru.mkn.lama.LamaMain"
 }
 

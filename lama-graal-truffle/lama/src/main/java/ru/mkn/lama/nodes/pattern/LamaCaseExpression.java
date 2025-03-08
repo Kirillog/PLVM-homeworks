@@ -1,11 +1,9 @@
 package ru.mkn.lama.nodes.pattern;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import ru.mkn.lama.nodes.LamaNode;
-import ru.mkn.lama.runtime.LamaArrayObject;
-import ru.mkn.lama.runtime.LamaFunctionObject;
-import ru.mkn.lama.runtime.LamaNull;
-import ru.mkn.lama.runtime.LamaSExpObject;
+import ru.mkn.lama.runtime.*;
 
 public class LamaCaseExpression extends LamaNode {
 
@@ -33,6 +31,18 @@ public class LamaCaseExpression extends LamaNode {
                 }
             }
             return true;
+        } else if (p instanceof LamaPattern.ArrayPattern ap && object instanceof LamaArrayObject a) {
+            if (!(ap.elems().length == a.length())) {
+                return false;
+            }
+            for (int i = 0; i < a.length(); ++i) {
+                if (!matches(a.get(i), ap.elems()[i])) {
+                    return false;
+                }
+            }
+            return true;
+        } else if (p instanceof LamaPattern.StringPattern ps && object instanceof LamaStringObject obj) {
+            return ps.str().equals(obj);
         } else if (p instanceof LamaPattern.NamedPattern pn) {
             if (pn.pattern() == null) {
                 return true;
@@ -47,12 +57,17 @@ public class LamaCaseExpression extends LamaNode {
             return a.length() == 0;
         } else if (p instanceof LamaPattern.FuncTypePattern && object instanceof LamaFunctionObject) {
             return true;
+        } else if (p instanceof LamaPattern.ValTypePattern && object instanceof Integer) {
+            return true;
+        } else if (p instanceof LamaPattern.StrTypePattern && object instanceof LamaStringObject) {
+            return true;
         } else {
             return false;
         }
     }
 
     @Override
+    @ExplodeLoop
     public Object executeGeneric(VirtualFrame frame) {
         var scr = scrutinee.executeGeneric(frame);
         for (LamaCase c : cases) {

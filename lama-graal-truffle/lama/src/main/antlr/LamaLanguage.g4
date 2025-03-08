@@ -207,18 +207,23 @@ pattern returns [LamaPattern result]:
 simplePattern returns [LamaPattern result]:
     DECIMAL { $result = factory.createDecimalPattern($DECIMAL); }
     | '_' { $result = factory.createWildcardPattern(); }
-//    | '[' (pattern (',' pattern)*)? ']'
+    | '[' { List<LamaPattern> patterns = new ArrayList<>(); }
+        (pattern  { patterns.add($pattern.result); }
+            (',' pattern { patterns.add($pattern.result); } )*)?
+      ']' { $result = factory.createArrayPattern(patterns); }
     | UIDENT { List<LamaPattern> patterns = new ArrayList<>(); }
     ('(' (pattern { patterns.add($pattern.result); }
         (',' pattern { patterns.add($pattern.result); } )*)?
     ')')? { $result = factory.createSExpPattern($UIDENT, patterns); }
     | LIDENT  ('@' pattern)? { $result = factory.createNamedPattern($LIDENT, $pattern.ctx == null ? null : $pattern.result); }
     | '{' '}' { $result = factory.createListPattern(); }
-    | op=PAT_FUN { $result = factory.createFuncTypePattern(); }
+    | op=(PAT_FUN|PAT_VAL|PAT_STR) { $result = factory.createTypePattern($op); }
     | '(' pattern ')' { $result = $pattern.result; }
+    | STRING { $result = factory.createStringPattern($STRING); }
 ;
 
 caseExpression returns [LamaNode result]:
+    { factory.startScope(); }
 'case' scrutinee=expression { LamaNode scr = factory.addFreshVariableDefinition($scrutinee.result); }
  'of' branches=caseBranches[scr] 'esac'
     { $result = factory.createCaseExpression(scr, $branches.result); }
@@ -268,6 +273,8 @@ GE: '>=';
 COLON: ':';
 
 PAT_FUN: '#fun';
+PAT_VAL: '#val';
+PAT_STR: '#str';
 
 WS : [ \t\r\n]+ -> skip;
 COMMENT : '(*' .*? '*)' -> skip;

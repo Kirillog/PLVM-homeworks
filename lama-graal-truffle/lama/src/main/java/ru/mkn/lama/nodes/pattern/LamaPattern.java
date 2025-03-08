@@ -1,6 +1,7 @@
 package ru.mkn.lama.nodes.pattern;
 
 import com.oracle.truffle.api.strings.TruffleString;
+import ru.mkn.lama.runtime.LamaStringObject;
 
 public interface LamaPattern {
     record Decimal(Integer number) implements LamaPattern {
@@ -12,6 +13,14 @@ public interface LamaPattern {
     }
 
     record SExpPattern(TruffleString name, LamaPattern[] elems) implements LamaPattern {
+
+    }
+
+    record ArrayPattern(LamaPattern[] elems) implements LamaPattern {
+
+    }
+
+    record StringPattern(LamaStringObject str) implements LamaPattern {
 
     }
 
@@ -28,6 +37,14 @@ public interface LamaPattern {
     }
 
     record FuncTypePattern() implements LamaPattern {
+
+    }
+
+    record ValTypePattern() implements LamaPattern {
+
+    }
+
+    record StrTypePattern() implements LamaPattern {
 
     }
 }

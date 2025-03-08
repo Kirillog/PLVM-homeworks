@@ -2,6 +2,8 @@ package ru.mkn.lama.runtime;
 
 import com.oracle.truffle.api.interop.TruffleObject;
 
+import java.util.Arrays;
+
 public class LamaStringObject implements TruffleObject {
 
     char[] value;
@@ -26,5 +28,10 @@ public class LamaStringObject implements TruffleObject {
         return '"' +
                 String.valueOf(value) +
                 '"';
+    }
+
+    @Override
+    public boolean equals(Object oth) {
+        return oth instanceof LamaStringObject && Arrays.equals(((LamaStringObject) oth).value, value);
     }
 }
