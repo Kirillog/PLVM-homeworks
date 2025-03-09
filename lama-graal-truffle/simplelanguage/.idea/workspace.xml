@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="a4a6b931-7c73-4b46-a60d-c3d81b5f5302" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="module-info" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="MavenRunner">
+    <option name="jreName" value="graalvm-21" />
+  </component>
+  <component name="ProjectCodeStyleSettingsMigration">
+    <option name="version" value="2" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="2tOPmJEgJWQkobWg1SQtzjooXAf" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.LamaMain.executor": "Run",
+    "Application.SLMain.executor": "Run",
+    "JUnit.LamaLanguageTest.booleanPatternMatching.executor": "Run",
+    "JUnit.LamaLanguageTest.executor": "Run",
+    "JUnit.LamaLanguageTest.simpleArithmeticExpression.executor": "Run",
+    "Maven.lama [org.antlr:antlr4-maven-plugin:4.0:antlr4].executor": "Run",
+    "Maven.lama [org.antlr:antlr4-maven-plugin:4.13.2:antlr4].executor": "Run",
+    "Maven.simplelanguage [compile].executor": "Run",
+    "Maven.simplelanguage [install].executor": "Run",
+    "Maven.simplelanguage [test].executor": "Run",
+    "Maven.simplelanguage-parent [package].executor": "Run",
+    "NIXITCH_NIXPKGS_CONFIG": "",
+    "NIXITCH_NIX_CONF_DIR": "",
+    "NIXITCH_NIX_OTHER_STORES": "",
+    "NIXITCH_NIX_PATH": "",
+    "NIXITCH_NIX_PROFILES": "",
+    "NIXITCH_NIX_REMOTE": "",
+    "NIXITCH_NIX_USER_PROFILE_DIR": "",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "master",
+    "jdk.selected.JAVA_MODULE": "19",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/home/kirill/Univer/PLVM-homeworks/lama-graal-truffle/simplelanguage/lama/src/main/java/ru/mkn/lama/parser",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "reference.settings.project.maven.runner"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/lama/src/main/java/ru/mkn/lama/parser" />
+      <recent name="$PROJECT_DIR$/lama/src/main/java" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="ru.mkn.lama.nodes.expr.literal" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Application.LamaMain">
+    <configuration name="LamaMain" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="ALTERNATIVE_JRE_PATH" value="graalvm-21" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="MAIN_CLASS_NAME" value="ru.mkn.lama.launcher.LamaMain" />
+      <module name="launcher" />
+      <option name="PROGRAM_PARAMETERS" value="--disable-launcher-output performance/Sort.lama" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="ru.mkn.lama.launcher.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="SLMain" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="com.oracle.truffle.sl.launcher.SLMain" />
+      <module name="launcher" />
+      <option name="PROGRAM_PARAMETERS" value="language/tests/Add.sl" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.oracle.truffle.sl.launcher.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="LamaLanguageTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="lama" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="ru.mkn.lama.test.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="ru.mkn.lama.test" />
+      <option name="MAIN_CLASS_NAME" value="ru.mkn.lama.test.LamaLanguageTest" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="LamaLanguageTest.booleanPatternMatching" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="lama" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="ru.mkn.lama.test.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="ALTERNATIVE_JRE_PATH" value="graalvm-21" />
+      <option name="PACKAGE_NAME" value="ru.mkn.lama.test" />
+      <option name="MAIN_CLASS_NAME" value="ru.mkn.lama.test.LamaLanguageTest" />
+      <option name="METHOD_NAME" value="booleanPatternMatching" />
+      <option name="TEST_OBJECT" value="method" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="LamaLanguageTest.simpleArithmeticExpression" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="lama" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="ru.mkn.lama.test.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="ru.mkn.lama.test" />
+      <option name="MAIN_CLASS_NAME" value="ru.mkn.lama.test.LamaLanguageTest" />
+      <option name="METHOD_NAME" value="simpleArithmeticExpression" />
+      <option name="TEST_OBJECT" value="method" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="Application.LamaMain" />
+      <item itemvalue="Application.SLMain" />
+      <item itemvalue="JUnit.LamaLanguageTest" />
+      <item itemvalue="JUnit.LamaLanguageTest.booleanPatternMatching" />
+      <item itemvalue="JUnit.LamaLanguageTest.simpleArithmeticExpression" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Application.LamaMain" />
+        <item itemvalue="JUnit.LamaLanguageTest.booleanPatternMatching" />
+        <item itemvalue="JUnit.LamaLanguageTest" />
+        <item itemvalue="JUnit.LamaLanguageTest.simpleArithmeticExpression" />
+        <item itemvalue="Application.SLMain" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="a4a6b931-7c73-4b46-a60d-c3d81b5f5302" name="Changes" comment="" />
+      <created>1740220305199</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1740220305199</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-field">
+          <url>file://$PROJECT_DIR$/language/src/main/java/com/oracle/truffle/sl/parser/SLNodeFactory.java</url>
+          <line>138</line>
+          <properties field="parameterCount" class="com.oracle.truffle.sl.parser.SLNodeFactory" />
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/lamalang/src/main/java/ru/mkn/lama/nodes/pattern/LamaCaseExpression.java</url>
+          <line>74</line>
+          <option name="timeStamp" value="7" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
